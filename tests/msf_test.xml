@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MetasploitV5>
+<generated time="2021-04-17 14:14:37 UTC" user="test" project="unit_test_workspace" product="framework"/>
+<hosts>
+  <host>
+    <id>246</id>
+    <created-at>2021-04-17 14:12:22 UTC</created-at>
+    <address>192.168.1.1</address>
+    <mac>00:11:22:33:44:55</mac>
+    <comm>unittest</comm>
+    <name>unit.test.com</name>
+    <state>alive</state>
+    <os-name>linux</os-name>
+    <os-flavor>test</os-flavor>
+    <os-sp>test</os-sp>
+    <os-lang>English</os-lang>
+    <arch>x86</arch>
+    <workspace-id>241</workspace-id>
+    <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+    <purpose>device</purpose>
+    <info>Host for unit tests</info>
+    <comments>Host for unit tests</comments>
+    <scope>unit tests scope</scope>
+    <virtual-host>unittest</virtual-host>
+    <note-count>2</note-count>
+    <vuln-count>2</vuln-count>
+    <service-count>2</service-count>
+    <host-detail-count>0</host-detail-count>
+    <exploit-attempt-count>0</exploit-attempt-count>
+    <cred-count>0</cred-count>
+    <detected-arch></detected-arch>
+    <os-family>posix</os-family>
+    <host_details>
+    </host_details>
+    <exploit_attempts>
+    </exploit_attempts>
+    <services>
+      <service>
+      <id>271</id>
+      <host-id>246</host-id>
+      <created-at>2021-04-17 14:12:22 UTC</created-at>
+      <port>12345</port>
+      <proto>tcp</proto>
+      <state>open</state>
+      <name>http</name>
+      <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+      <info>Unit test</info>
+      </service>
+      <service>
+      <id>272</id>
+      <host-id>246</host-id>
+      <created-at>2021-04-17 14:12:22 UTC</created-at>
+      <port>12346</port>
+      <proto>tcp</proto>
+      <state>open</state>
+      <name>http</name>
+      <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+      <info>Unit test 2</info>
+      </service>
+    </services>
+    <notes>
+      <note>
+      <id>53</id>
+      <created-at>2021-04-17 14:12:22 UTC</created-at>
+      <ntype>host.test</ntype>
+      <workspace-id>241</workspace-id>
+      <service-id/>
+      <host-id>246</host-id>
+      <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+      <critical/>
+      <seen/>
+      <data>Unit test host comment</data>
+      <vuln-id/>
+      </note>
+      <note>
+      <id>54</id>
+      <created-at>2021-04-17 14:12:22 UTC</created-at>
+      <ntype>host.test2</ntype>
+      <workspace-id>241</workspace-id>
+      <service-id/>
+      <host-id>246</host-id>
+      <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+      <critical/>
+      <seen/>
+      <data>Unit test host comment 2</data>
+      <vuln-id/>
+      </note>
+    </notes>
+    <vulns>
+      <vuln>
+      <id>285</id>
+      <host-id>246</host-id>
+      <service-id>271</service-id>
+      <created-at>2021-04-17 14:12:22 UTC</created-at>
+      <name>Unit test vuln name</name>
+      <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+      <info>Unit test vuln info</info>
+      <exploited-at/>
+      <vuln-detail-count>0</vuln-detail-count>
+      <vuln-attempt-count>0</vuln-attempt-count>
+      <origin-id/>
+      <origin-type/>
+        <notes>
+        </notes>
+        <refs>
+          <ref>CVE-2020-2020</ref>
+          <ref>URL-https://unit.test.com/vuln</ref>
+        </refs>
+            <vuln_details>
+            </vuln_details>
+            <vuln_attempts>
+            </vuln_attempts>
+      </vuln>
+      <vuln>
+      <id>286</id>
+      <host-id>246</host-id>
+      <service-id>271</service-id>
+      <created-at>2021-04-17 14:12:23 UTC</created-at>
+      <name>Unit test vuln name 2</name>
+      <updated-at>2021-04-17 14:12:23 UTC</updated-at>
+      <info>Unit test vuln info 2</info>
+      <exploited-at/>
+      <vuln-detail-count>0</vuln-detail-count>
+      <vuln-attempt-count>0</vuln-attempt-count>
+      <origin-id/>
+      <origin-type/>
+        <notes>
+        </notes>
+        <refs>
+          <ref>CVE-2020-2022</ref>
+          <ref>URL-https://unit.test.com/vuln2</ref>
+        </refs>
+            <vuln_details>
+            </vuln_details>
+            <vuln_attempts>
+            </vuln_attempts>
+      </vuln>
+    </vulns>
+  </host>
+  <host>
+    <id>247</id>
+    <created-at>2021-04-17 14:12:22 UTC</created-at>
+    <address>192.168.1.2</address>
+    <mac>00:11:22:33:44:56</mac>
+    <comm>unittest2</comm>
+    <name>unit.test2.com</name>
+    <state>alive</state>
+    <os-name>linux</os-name>
+    <os-flavor>test</os-flavor>
+    <os-sp>test</os-sp>
+    <os-lang>English</os-lang>
+    <arch>x86</arch>
+    <workspace-id>241</workspace-id>
+    <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+    <purpose>device</purpose>
+    <info>Host for unit tests 2</info>
+    <comments>Host for unit tests 2</comments>
+    <scope>unit tests scope 2</scope>
+    <virtual-host>unittest2</virtual-host>
+    <note-count>0</note-count>
+    <vuln-count>0</vuln-count>
+    <service-count>0</service-count>
+    <host-detail-count>0</host-detail-count>
+    <exploit-attempt-count>0</exploit-attempt-count>
+    <cred-count>0</cred-count>
+    <detected-arch></detected-arch>
+    <os-family>posix</os-family>
+    <host_details>
+    </host_details>
+    <exploit_attempts>
+    </exploit_attempts>
+    <services/>
+    <notes/>
+    <vulns/>
+  </host>
+</hosts>
+<events>
+</events>
+<services>
+  <service>
+      <id>271</id>
+      <host-id>246</host-id>
+      <created-at>2021-04-17 14:12:22 UTC</created-at>
+      <port>12345</port>
+      <proto>tcp</proto>
+      <state>open</state>
+      <name>http</name>
+      <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+      <info>Unit test</info>
+  </service>
+  <service>
+      <id>272</id>
+      <host-id>246</host-id>
+      <created-at>2021-04-17 14:12:22 UTC</created-at>
+      <port>12346</port>
+      <proto>tcp</proto>
+      <state>open</state>
+      <name>http</name>
+      <updated-at>2021-04-17 14:12:22 UTC</updated-at>
+      <info>Unit test 2</info>
+      </service>
+</services>
+<web_sites>
+</web_sites>
+<web_pages>
+</web_pages>
+<web_forms>
+</web_forms>
+<web_vulns>
+</web_vulns>
+<module_details>
+</module_details>
+</MetasploitV5>

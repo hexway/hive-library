@@ -1,0 +1,14 @@
+<services>
+	<entry>
+			<address>192.168.1.1</address>
+			<port>12345</port>
+			<banner>Unit test</banner>
+			<note></note>
+	</entry>
+	<entry>
+			<address>192.168.1.1</address>
+			<port>12346</port>
+			<banner>Unit test 2</banner>
+			<note></note>
+	</entry>
+</services>

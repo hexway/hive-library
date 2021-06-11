@@ -1,0 +1,26 @@
+<sessions>
+    <entry>
+        <id>12345</id>
+        <opened>1619432847345</opened>
+        <external>10.10.10.10</external>
+        <internal>192.168.1.1</internal>
+        <user>UnitTestUser</user>
+        <computer>DC01</computer>
+        <pid>12345</pid>
+        <is64>1</is64>
+        <pbid></pbid>
+        <note>Session note</note>
+    </entry>
+    <entry>
+        <id>12346</id>
+        <opened>1619432847346</opened>
+        <external>10.10.10.10</external>
+        <internal>192.168.1.1</internal>
+        <user>UnitTestUser2</user>
+        <computer>DC01</computer>
+        <pid>12346</pid>
+        <is64>1</is64>
+        <pbid></pbid>
+        <note>Session note 2</note>
+    </entry>
+</sessions>

@@ -1,0 +1,16 @@
+<targets>
+    <entry>
+        <address>192.168.1.1</address>
+        <name>unit.test.com</name>
+        <os>linux</os>
+        <version>1.1.1</version>
+        <note>host unit test note</note>
+    </entry>
+    <entry>
+        <address>192.168.1.2</address>
+        <name>unit.test2.com</name>
+        <os>linux</os>
+        <version>1.1.2</version>
+        <note>host unit test note 2</note>
+    </entry>
+</targets>

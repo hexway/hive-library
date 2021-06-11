@@ -1,7 +1,7 @@
 Hive library
 ===================
 
-![logo](img/logo.jpeg) 
+![logo](images/logos/logo.jpeg) 
 
 web: [https://hexway.io/hive](https://hexway.io/hive)  
 twitter: [@_hexway](https://twitter.com/_hexway)  

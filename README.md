@@ -1,16 +1,10 @@
 Hive library
 ===================
 
-![logo](images/logos/logo.jpeg) 
-
-web: [https://hexway.io/hive](https://hexway.io/hive)  
-twitter: [@_hexway](https://twitter.com/_hexway)  
-discord: [HexWay Hive](https://discord.gg/rb8XjCW2TQ) 
-
 ## Description
 
 This is a python library for working with Hive REST API.
- 
+
 That library allows you work with Hive REST API objects such as:
 
  - [Projects](#projects)

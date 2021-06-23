@@ -21,7 +21,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b1"
+__version__ = "0.0.1b2"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -45,6 +45,9 @@ class HiveRestApiTest(TestCase):
     def test01_check_auth(self):
         hive_api._session.cookies.clear()
         del hive_api._session.headers["Cookie"]
+        config: HiveLibrary.Config = HiveLibrary.load_config()
+        variables.username = config.username
+        variables.password = config.password
         user: Optional[HiveLibrary.User] = hive_api._password_auth(
             username=variables.username, password=variables.password
         )
@@ -125,6 +128,31 @@ class HiveRestApiTest(TestCase):
         )
         self.assertTrue(task_is_completed)
         self.assertEqual("SUCCESS", variables.task.state)
+
+    def test13_create_credential(self):
+        ip_id = hive_api.get_ip_id(
+            project_id=variables.project.id, ip=variables.host.ip
+        )
+        self.assertIsNotNone(ip_id)
+        self.assertIsInstance(ip_id, int)
+        variables.credential.asset_ids = [ip_id]
+        credential: Optional[HiveLibrary.Credential] = hive_api.create_credential(
+            project_id=variables.project.id, credential=variables.credential
+        )
+        self.assertIsNotNone(credential.id)
+        self.assertIsNotNone(credential.uuid)
+        self.assertEqual(credential.assets[0].asset, variables.host.ip)
+        self.assertEqual(credential.assets[0].label, "Ip")
+        self.assertEqual(credential.login, variables.credential.login)
+        self.assertEqual(credential.type, variables.credential.type)
+        self.assertEqual(credential.value, variables.credential.value)
+        self.assertEqual(credential.description, variables.credential.description)
+        self.assertIsNotNone(credential.tags[0].id)
+        self.assertEqual(credential.tags[0].parent_id, credential.id)
+        self.assertEqual(credential.tags[0].name, variables.credential.tags[0].name)
+        variables.credential.id = credential.id
+        variables.credential.uuid = credential.uuid
+        variables.credential.tags = credential.tags
 
     # Get data in project
     def test21_get_ips(self):
@@ -288,6 +316,22 @@ class HiveRestApiTest(TestCase):
             ],
         )
         self.assertEqual(port_node.sources[0].filename, "api_upload")
+
+    def test27_get_credentials(self):
+        credentials = hive_api.get_credentials(project_id=variables.project.id)
+        self.assertIsInstance(credentials, List)
+        self.assertEqual(len(credentials), 1)
+        credential = credentials[0]
+        self.assertEqual(credential.id, variables.credential.id)
+        self.assertEqual(credential.uuid, variables.credential.uuid)
+        self.assertEqual(credential.assets[0].asset, variables.host.ip)
+        self.assertEqual(credential.assets[0].label, "Ip")
+        self.assertEqual(credential.login, variables.credential.login)
+        self.assertEqual(credential.type, variables.credential.type)
+        self.assertEqual(credential.value, variables.credential.value)
+        self.assertEqual(credential.description, variables.credential.description)
+        self.assertEqual(credential.tags[0].id, variables.credential.tags[0].id)
+        self.assertEqual(credential.tags[0].name, variables.credential.tags[0].name)
 
     # Create objects
     def test31_create_note(self):

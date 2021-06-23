@@ -18,7 +18,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b1"
+__version__ = "0.0.1b2"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -27,10 +27,10 @@ __status__ = "Development"
 @dataclass
 class HiveVariables:
     server: str = "http://127.0.0.1:8080"
-    username: str = "root@ro.ot"
-    password: str = "root12345"
+    username: Optional[str] = None
+    password: Optional[str] = None
     cookie: Optional[str] = None
-    proxy: Optional[str] = "http://127.0.0.1:8081"
+    proxy: Optional[str] = "http://127.0.0.1:8888"
 
     project: HiveLibrary.Project = HiveLibrary.Project(
         name="test_project",
@@ -115,4 +115,12 @@ class HiveVariables:
         control_sum="sha256:747153e0f6b14eb609fd7cb6921fa871b08f26fec6e042075a2ab30a1af4d295",
         mime_type="text/plain",
         caption="Unit test file",
+    )
+
+    credential: HiveLibrary.Credential = HiveLibrary.Credential(
+        type="password",
+        login="unit_test_username",
+        value="unit_test_password",
+        description="unit test credential",
+        tags=[HiveLibrary.Tag(name="credential_tag")],
     )

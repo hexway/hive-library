@@ -34,7 +34,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b1"
+__version__ = "0.0.1b2"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -293,10 +293,12 @@ class HiveLibrary:
 
     @dataclass
     class Label:
+        id: Optional[int] = None
         count: Optional[int] = None
         label: Union[None, int, str, IPv4Address] = None
 
         class Schema(MarshmallowSchema):
+            id = fields.Integer(default=None, allow_none=True)
             count = fields.Integer(default=None, allow_none=True)
             label = fields.Raw(default=None, allow_none=True)
 
@@ -613,7 +615,6 @@ class HiveLibrary:
 
     @dataclass
     class Note:
-
         def __str__(self):
             return self.text
 
@@ -673,6 +674,100 @@ class HiveLibrary:
             @post_load
             def make_note(self, data, **kwargs):
                 return HiveLibrary.Note(**data)
+
+    @dataclass
+    class Asset:
+        id: Optional[int] = None
+        asset: Union[None, str, IPv4Address] = None
+        label: Optional[str] = None
+
+        class Schema(MarshmallowSchema):
+            id = fields.Integer(load_only=True, missing=None, default=None)
+            asset = fields.String(load_only=True, missing=None, default=None)
+            label = fields.String(load_only=True, missing=None, default=None)
+
+            class Meta:
+                unknown = EXCLUDE
+
+            @post_load
+            def make_asset(self, data, **kwargs):
+                try:
+                    if isinstance(data["asset"], str):
+                        data["asset"] = ip_address(data["asset"])
+                except ValueError:
+                    pass
+                return HiveLibrary.Asset(**data)
+
+    @dataclass
+    class Credential:
+        id: Optional[int] = None
+        uuid: Optional[UUID] = None
+        create_time: Optional[datetime] = None
+        creator_uuid: Optional[UUID] = None
+        assets: Optional[List["HiveLibrary.Asset"]] = field(default_factory=lambda: [])
+        asset_ids: Optional[List[int]] = field(default_factory=lambda: [])
+        description: Optional[str] = None
+        labels: Optional[List[str]] = field(default_factory=lambda: [])
+        login: Optional[str] = None
+        type: Optional[str] = None
+        value: Optional[str] = None
+        tags: Optional[List["HiveLibrary.Tag"]] = field(default_factory=lambda: [])
+
+        class Schema(MarshmallowSchema):
+            id = fields.Integer(load_only=True, missing=None, default=None)
+            uuid = fields.UUID(load_only=True, missing=None, default=None)
+            create_time = fields.DateTime(
+                "%Y-%m-%dT%H:%M:%S.%fZ",
+                load_only=True,
+                data_key="createTime",
+                missing=None,
+            )
+            creator_uuid = fields.UUID(
+                load_only=True, missing=None, default=None, data_key="creatorUuid"
+            )
+            assets = fields.Nested(
+                lambda: HiveLibrary.Asset.Schema,
+                load_only=True,
+                many=True,
+                missing=[],
+                default=[],
+                allow_none=True,
+            )
+            asset_ids = fields.List(
+                fields.Integer,
+                data_key="assetIds",
+                many=True,
+                missing=[],
+                default=[],
+                allow_none=True,
+            )
+            description = fields.String(missing=None, default=None)
+            labels = fields.List(
+                fields.String,
+                many=True,
+                load_only=True,
+                missing=[],
+                default=[],
+                allow_none=True,
+            )
+            login = fields.String(missing=None, default=None)
+            type = fields.String(missing=None, default=None)
+            value = fields.String(missing=None, default=None)
+            tags = fields.Nested(
+                lambda: HiveLibrary.Tag.Schema,
+                many=True,
+                load_only=True,
+                missing=[],
+                default=[],
+                allow_none=True,
+            )
+
+            class Meta:
+                unknown = EXCLUDE
+
+            @post_load
+            def make_credential(self, data, **kwargs):
+                return HiveLibrary.Credential(**data)
 
     @dataclass
     class Host:

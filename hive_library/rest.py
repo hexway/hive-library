@@ -15,13 +15,14 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from json.decoder import JSONDecodeError
 from ipaddress import IPv4Address
+from os import path
 
 # Authorship information
 __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b1"
+__version__ = "0.0.1b2"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -108,7 +109,7 @@ class HiveRestApi:
         self._session: Session = Session()
         self._session.headers.update(
             {
-                "User-Agent": "Hive Client/" + "0.0.1b1",
+                "User-Agent": "Hive Client/" + "0.0.1b2",
                 "Accept": "application/json",
                 "Connection": "close",
             }
@@ -207,6 +208,8 @@ class HiveRestApi:
                   login='test@mail.com', name='test@mail.com')
         """
         try:
+            assert username is not None, "Hive username is None!"
+            assert password is not None, "Hive password is None!"
             response: Response = self._session.post(
                 self._server + self._endpoints.auth,
                 json={"userEmail": username, "userPassword": password},
@@ -485,6 +488,51 @@ class HiveRestApi:
             host_schema: HiveLibrary.Project.Schema = HiveLibrary.Host.Schema(many=True)
             hosts: List[HiveLibrary.Host] = host_schema.load(response.json())
             return hosts
+
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def get_credentials(
+        self, project_id: UUID
+    ) -> Optional[List[HiveLibrary.Credential]]:
+        """
+        Get credentials
+        @param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        @return: None if error or List of credentials, example:
+        [HiveLibrary.Credential(id=69, uuid=UUID('f7414ca4-7536-41e4-bf59-8eca587e6574'),
+                                create_time=datetime.datetime(2021, 6, 23, 8, 38, 17, 516104),
+                                creator_uuid=UUID('095aa6ed-8de2-4e4b-86dc-d7fb5ca72684'),
+                                assets=[HiveLibrary.Asset(id=37, asset=IPv4Address('192.168.1.1'), label='Ip')],
+                                asset_ids=[], description='unit test credential', labels=['Credential'],
+                                login='unit_test_username', type='password', value='unit_test_password', tags=[])]
+        """
+        try:
+            response = self._session.get(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/nodes/credentials/"
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in get credentials {error_string}"
+            assert isinstance(
+                response.json(), List
+            ), f"Bad response in get credentials {error_string}"
+            credential_schema: HiveLibrary.Credential.Schema = (
+                HiveLibrary.Credential.Schema(many=True)
+            )
+            credentials: List[HiveLibrary.Credential] = credential_schema.load(
+                response.json()
+            )
+            return credentials
 
         except AssertionError as error:
             print(f"Assertion error: {error.args[0]}")
@@ -1043,18 +1091,20 @@ class HiveRestApi:
         :return: None if error or import task identifier, example: 'e08d16f3-b864-44ac-a90c-8e10f4af9893'
         """
         try:
-            if project_name is None and project_id is None:
-                assert False, "Project ID and Name is not set"
+            assert not (
+                project_name is None and project_id is None
+            ), "Project ID and Name is not set"
             if project_name is not None:
                 project_id = self.get_project_id_by_name(project_name=project_name)
-            with open(file_location, "r") as file:
-                file_content = file.read()
+            with open(file_location, "rb") as file:
+                file_content: bytes = file.read()
             response = self._session.post(
-                self._server
-                + self._endpoints.project
-                + f"/{project_id}/graph?importType={import_type}",
-                data=file_content,
-                headers={"Content-Type": "applications/octet-stream"},
+                self._server + self._endpoints.project + f"/{project_id}/graph",
+                files={
+                    "file": (path.basename(file_location), file_content),
+                    "importType": (None, import_type),
+                    "filename": (None, path.basename(file_location)),
+                },
             )
             error_string: str = ""
             if self._debug:
@@ -1065,6 +1115,9 @@ class HiveRestApi:
             if "taskId" in response.json():
                 if isinstance(response.json()["taskId"], str):
                     return UUID(response.json()["taskId"])
+            return None
+        except FileNotFoundError as error:
+            print(f"File not found error: {error.args[0]}")
             return None
         except AssertionError as error:
             print(f"Assertion error: {error.args[0]}")
@@ -1252,6 +1305,67 @@ class HiveRestApi:
             tag_schema: HiveLibrary.Tag.Schema = HiveLibrary.Tag.Schema()
             tag: HiveLibrary.Tag = tag_schema.load(response.json()[0])
             return tag
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def create_credential(
+        self, project_id: UUID, credential: HiveLibrary.Credential
+    ) -> Optional[HiveLibrary.Credential]:
+        """
+        Create credential in project
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param credential: Credential object, example:
+        HiveLibrary.Credential(id=None, uuid=None, create_time=None, creator_uuid=None, assets=[], asset_ids=[16],
+                               description='unit test credential', labels=[], login='unit_test_username',
+                               type='password', value='unit_test_password', tags=[])
+        :return: None if error or Tag object, example:
+        HiveLibrary.Credential(id=24, uuid=UUID('1cf44bae-20dc-4fdb-82ad-863be9cdb81f'),
+                               create_time=datetime.datetime(2021, 6, 23, 8, 34, 18, 510510),
+                               creator_uuid=UUID('095aa6ed-8de2-4e4b-86dc-d7fb5ca72684'),
+                               assets=[HiveLibrary.Asset(id=123, asset=IPv4Address('192.168.1.1'), label='Ip')],
+                               asset_ids=[], description='unit test credential', labels=['Credential'],
+                               login='unit_test_username', type='password', value='unit_test_password', tags=[])
+        """
+        try:
+            response: Response = self._session.post(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/nodes/credentials/",
+                json=[HiveLibrary.Credential.Schema().dump(credential)],
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in create credential {error_string}"
+            assert isinstance(
+                response.json(), List
+            ), f"Bad response in create credential {error_string}"
+            assert (
+                len(response.json()) == 1
+            ), f"Bad response in create credential {error_string}"
+            tags: List[HiveLibrary.Tag] = list()
+            if len(credential.tags) > 0:
+                tags = credential.tags
+            credential_schema: HiveLibrary.Credential.Schema = (
+                HiveLibrary.Credential.Schema()
+            )
+            credential: HiveLibrary.Credential = credential_schema.load(
+                response.json()[0]
+            )
+            if len(tags) > 0:
+                for tag in tags:
+                    credential_tag: Optional[HiveLibrary.Tag] = self.create_tag(
+                        tag_name=tag.name, project_id=project_id, node_id=credential.id
+                    )
+                    if credential_tag is not None:
+                        credential.tags.append(credential_tag)
+            return credential
         except AssertionError as error:
             print(f"Assertion error: {error.args[0]}")
             return None

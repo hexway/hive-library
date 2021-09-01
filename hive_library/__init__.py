@@ -174,6 +174,7 @@ class HiveLibrary:
         create_date: Optional[datetime] = None
         is_archived: bool = False
         start_date: Optional[datetime] = None
+        update_date: Optional[datetime] = None
         end_date: Optional[datetime] = None
         archive_date: Optional[datetime] = None
         hawser_id: Optional[UUID] = None
@@ -211,6 +212,9 @@ class HiveLibrary:
             )
             end_date = fields.DateTime(
                 "%Y-%m-%dT%H:%M:%S.%fZ", data_key="projectEndDate"
+            )
+            
+            update_date = fields.DateTime("%Y-%m-%dT%H:%M:%S.%fZ",  data_key="projectUpdateDate"
             )
             archive_date = fields.DateTime(
                 "%Y-%m-%dT%H:%M:%S.%fZ",
@@ -868,8 +872,9 @@ class HiveLibrary:
 
             @post_dump(pass_many=False)
             def parse_host(self, data, many, **kwargs):
-                if data["ip"] is not None:
-                    data["ipv4"] = data["ip"]
+                #fix for upload hostnames without known ip ability
+                #if data["ip"] is not None:
+                data["ipv4"] = data["ip"]
                 del data["ip"]
                 return data
 

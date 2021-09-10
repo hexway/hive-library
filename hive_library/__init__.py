@@ -34,7 +34,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b3"
+__version__ = "0.0.1b4"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -240,6 +240,9 @@ class HiveLibrary:
                 many=True,
                 data_key="projectUsers",
             )
+
+            class Meta:
+                unknown = EXCLUDE
 
             @post_dump(pass_many=False)
             def clean_missing(self, data, many, **kwargs):
@@ -889,7 +892,7 @@ class HiveLibrary:
                                 new_records.append(value)
                         data["records"] = new_records
                 if "ip" in data:
-                    if data["ip"] == "":
+                    if data["ip"] == "UNKNOWN":
                         data["ip"] = None
                 return data
 

@@ -7,7 +7,7 @@ Copyright 2021, HexWay
 """
 
 # Import
-from hive_library.enum import RecordTypes, PermissionTypes, TaskStates
+from hive_library.enum import RecordTypes, PermissionTypes, TaskStates, RowTypes
 from typing import List, Dict, Optional, Union
 from uuid import UUID
 from dataclasses import dataclass, field
@@ -19,6 +19,8 @@ from marshmallow import (
     post_dump,
     validate,
     EXCLUDE,
+    validates,
+    ValidationError,
 )
 from marshmallow import Schema as MarshmallowSchema
 from datetime import datetime
@@ -34,15 +36,10 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b4"
+__version__ = "0.0.1b5"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
-
-
-PermissionTypes = PermissionTypes.list()
-RecordTypes = RecordTypes.list()
-TaskStates = TaskStates.list()
 
 
 class HiveLibrary:
@@ -90,7 +87,7 @@ class HiveLibrary:
 
         class Schema(MarshmallowSchema):
             permission_type = fields.String(
-                validate=validate.OneOf(PermissionTypes),
+                validate=validate.OneOf(PermissionTypes.list()),
                 data_key="permissionType",
                 missing=None,
             )
@@ -140,7 +137,7 @@ class HiveLibrary:
 
         class Schema(MarshmallowSchema):
             permission_type = fields.String(
-                validate=validate.OneOf(PermissionTypes),
+                validate=validate.OneOf(PermissionTypes.list()),
                 missing=None,
                 data_key="permissionType",
             )
@@ -188,7 +185,7 @@ class HiveLibrary:
 
         class Schema(MarshmallowSchema):
             permission = fields.String(
-                validate=validate.OneOf(PermissionTypes),
+                validate=validate.OneOf(PermissionTypes.list()),
                 load_only=True,
                 missing=None,
                 data_key="projectPermission",
@@ -213,8 +210,8 @@ class HiveLibrary:
             end_date = fields.DateTime(
                 "%Y-%m-%dT%H:%M:%S.%fZ", data_key="projectEndDate"
             )
-            
-            update_date = fields.DateTime("%Y-%m-%dT%H:%M:%S.%fZ",  data_key="projectUpdateDate"
+            update_date = fields.DateTime(
+                "%Y-%m-%dT%H:%M:%S.%fZ", data_key="projectUpdateDate"
             )
             archive_date = fields.DateTime(
                 "%Y-%m-%dT%H:%M:%S.%fZ",
@@ -274,7 +271,7 @@ class HiveLibrary:
         exc_type: Optional[str] = None
 
         class Schema(MarshmallowSchema):
-            id = fields.UUID(required=True, data_key="taskId")
+            id = fields.UUID(missing=None, default=None, data_key="taskId")
             type = fields.String(required=True, data_key="taskType")
             user_id = fields.UUID(required=True, data_key="userId")
             project_id = fields.UUID(required=True, data_key="projectId")
@@ -285,9 +282,9 @@ class HiveLibrary:
             file_node_id = fields.Integer(missing=None, data_key="filenodeId")
             timestamp = fields.DateTime("%Y-%m-%dT%H:%M:%S.%fZ", required=True)
             state = fields.String(
-                validate=validate.OneOf(TaskStates),
-                allow_none=False,
-                required=True,
+                validate=validate.OneOf(TaskStates.list()),
+                missing=None,
+                default=None,
             )
             total = fields.Integer(required=False, default=None, missing=None)
             current = fields.Integer(required=False, default=None, missing=None)
@@ -457,7 +454,7 @@ class HiveLibrary:
             name = fields.String(missing=None)
             tool_name = fields.String(missing=None, default="nmap")
             record_type = fields.String(
-                validate=validate.OneOf(RecordTypes),
+                validate=validate.OneOf(RecordTypes.list()),
             )
             value = fields.Raw(missing=None)
 
@@ -875,8 +872,8 @@ class HiveLibrary:
 
             @post_dump(pass_many=False)
             def parse_host(self, data, many, **kwargs):
-                #fix for upload hostnames without known ip ability
-                #if data["ip"] is not None:
+                # fix for upload hostnames without known ip ability
+                # if data["ip"] is not None:
                 data["ipv4"] = data["ip"]
                 del data["ip"]
                 return data
@@ -1129,6 +1126,121 @@ class HiveLibrary:
                     @post_load
                     def make_service(self, data, **kwargs):
                         return HiveLibrary.Host.Port.Service(**data)
+
+    @dataclass
+    class Row:
+        cpelist: Optional[str] = None
+        hostname: Optional[str] = None
+        ip: Optional[str] = None
+        note: Optional[str] = None
+        port: Optional[str] = None
+        product: Optional[str] = None
+        service: Optional[str] = None
+        state: Optional[str] = None
+        tag: Optional[str] = None
+        version: Optional[str] = None
+
+        class Schema(MarshmallowSchema):
+            cpelist = fields.String(missing=None, default=None)
+            hostname = fields.String(missing=None, default=None)
+            ip = fields.String(missing=None, default=None)
+            note = fields.String(missing=None, default=None)
+            port = fields.String(missing=None, default=None)
+            product = fields.String(missing=None, default=None)
+            service = fields.String(missing=None, default=None)
+            state = fields.String(missing=None, default=None)
+            tag = fields.String(missing=None, default=None)
+            version = fields.String(missing=None, default=None)
+
+            class Meta:
+                unknown = EXCLUDE
+
+            @post_dump(pass_many=False)
+            def clean_missing(self, data, many, **kwargs):
+                clean_data = data.copy()
+                for key in filter(lambda key: data[key] is None, data):
+                    del clean_data[key]
+                return clean_data
+
+            @post_load
+            def make_row(self, data, **kwargs):
+                return HiveLibrary.Row(**data)
+
+    @dataclass
+    class Parse:
+        column_separator: str = ","
+        row_separator: str = "\n"
+        columns: List[str] = field(default_factory=lambda: [])
+        data: Optional[str] = None
+        exclude_headers: bool = False
+
+        class Schema(MarshmallowSchema):
+            column_separator = fields.String(
+                dump_only=True, missing=",", default=",", data_key="columnSep"
+            )
+            row_separator = fields.String(
+                dump_only=True, missing="\n", default="\n", data_key="rowSep"
+            )
+            columns = fields.List(
+                fields.String,
+                many=True,
+                dump_only=True,
+                missing=[],
+                default=[],
+                allow_none=False,
+            )
+            data = fields.String(dump_only=True, missing="", default="")
+            exclude_headers = fields.Boolean(
+                dump_only=True, missing=False, default=False, data_key="excludeHeaders"
+            )
+
+            @validates("columns")
+            def validate_list(self, value):
+                for column in value:
+                    if column not in RowTypes.list():
+                        raise ValidationError(
+                            f"Bad column: {column}, column name must be in list: {str(RowTypes.list())}"
+                        )
+
+            class Meta:
+                unknown = EXCLUDE
+
+    @dataclass
+    class Snapshot:
+        checksum: Optional[str] = None
+        description: Optional[str] = None
+        filesize: Optional[float] = None
+        mimetype: Optional[str] = None
+        name: Optional[str] = None
+        project_id: Optional[UUID] = None
+        timestamp: Optional[datetime] = None
+        user_id: Optional[UUID] = None
+
+        class Schema(MarshmallowSchema):
+            checksum = fields.String(missing=None, default=None)
+            description = fields.String(required=True)
+            filesize = fields.Float(missing=None, default=None)
+            mimetype = fields.String(missing=None, default=None)
+            name = fields.String(required=True)
+            project_id = fields.UUID(missing=None, default=None, data_key="projectId")
+            timestamp = fields.DateTime(
+                "%Y-%m-%dT%H:%M:%S.%fZ", missing=None, default=None
+            )
+            user_id = fields.UUID(missing=None, default=None, data_key="userId")
+
+            class Meta:
+                unknown = EXCLUDE
+
+            @post_dump(pass_many=False)
+            def clean_missing(self, data, many, **kwargs):
+                clean_data = data.copy()
+                for key in filter(lambda key: data[key] is None, data):
+                    del clean_data[key]
+                return clean_data
+
+            @post_load
+            def make_snapshot(self, data, **kwargs):
+                return HiveLibrary.Snapshot(**data)
 
     @staticmethod
     def load_config() -> Config:

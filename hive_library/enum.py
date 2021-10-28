@@ -15,7 +15,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b4"
+__version__ = "0.0.1b5"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -52,3 +52,17 @@ class TaskStates(str, ListEnum):
     PENDING = "PENDING"
     FAILURE = "FAILED"
     CANCELLED = "CANCELLED"
+
+
+class RowTypes(str, ListEnum):
+    CPELIST = "cpelist"
+    HOSTNAME = "hostname"
+    IP = "ip"
+    NOTE = "note"
+    PORT = "port"
+    PRODUCT = "product"
+    SERVICE = "service"
+    STATE = "state"
+    TAG = "tag"
+    VERSION = "version"
+    DUMMY = "dummy"

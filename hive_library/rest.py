@@ -9,7 +9,7 @@ Copyright 2021, HexWay
 # Import
 from hive_library import HiveLibrary
 from requests import Session, Response, exceptions
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Tuple
 from uuid import UUID
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -22,7 +22,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b4"
+__version__ = "0.0.1b5"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -109,7 +109,7 @@ class HiveRestApi:
         self._session: Session = Session()
         self._session.headers.update(
             {
-                "User-Agent": "Hive Client/" + "0.0.1b4",
+                "User-Agent": "Hive Client/" + "0.0.1b5",
                 "Accept": "application/json",
                 "Connection": "close",
             }
@@ -1081,6 +1081,7 @@ class HiveRestApi:
         import_type: str = "nmap",
         project_id: Optional[UUID] = None,
         project_name: Optional[str] = None,
+        advanced_options: Optional[List[str]] = None,
     ) -> Optional[UUID]:
         """
         Import data from file
@@ -1089,6 +1090,7 @@ class HiveRestApi:
         :param import_type: Import type string, examples: 'nmap', 'nessus', 'metasploit', 'cobaltstrike'
         :param file_location: File location string, example: '/tmp/test.xml'
         :return: None if error or import task identifier, example: 'e08d16f3-b864-44ac-a90c-8e10f4af9893'
+        :param advanced_options: Advanced options for import, example: ['openOnly', 'skipEmpty']
         """
         try:
             assert not (
@@ -1098,13 +1100,17 @@ class HiveRestApi:
                 project_id = self.get_project_id_by_name(project_name=project_name)
             with open(file_location, "rb") as file:
                 file_content: bytes = file.read()
+            files: Dict[str, Tuple] = {
+                "file": (path.basename(file_location), file_content),
+                "importType": (None, import_type),
+                "filename": (None, path.basename(file_location)),
+            }
+            if isinstance(advanced_options, List):
+                for advanced_option in advanced_options:
+                    files[advanced_option] = (None, "true")
             response = self._session.post(
                 self._server + self._endpoints.project + f"/{project_id}/graph",
-                files={
-                    "file": (path.basename(file_location), file_content),
-                    "importType": (None, import_type),
-                    "filename": (None, path.basename(file_location)),
-                },
+                files=files,
             )
             error_string: str = ""
             if self._debug:
@@ -1431,6 +1437,195 @@ class HiveRestApi:
             file_schema: HiveLibrary.File.Schema = HiveLibrary.File.Schema()
             file: HiveLibrary.File = file_schema.load(response.json()[0])
             return file
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def parse_custom_import(
+        self,
+        project_id: UUID,
+        data: str,
+        columns: List[str],
+        column_separator: str = ",",
+        row_separator: str = "\n",
+    ) -> Optional[List[HiveLibrary.Row]]:
+        """
+        Parse custom import data
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param data: Data string, example: 'unit.test.com,192.168.1.1'
+        :param columns: Columns for import, example: ['hostname', 'ip']
+        :param column_separator: Column separator, example: ','
+        :param row_separator: Row separator, example: '\n'
+        :return: Rows, example:
+        [HiveLibrary.Row(cpelist=None, hostname='unit.test.com', ip='192.168.1.1', note=None,
+         port=None, product=None, service=None, state=None, tag=None, version=None)]
+        """
+        try:
+            response = self._session.post(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/custom/parse",
+                json=HiveLibrary.Parse.Schema().dump(
+                    HiveLibrary.Parse(
+                        column_separator=column_separator,
+                        row_separator=row_separator,
+                        data=data,
+                        columns=columns,
+                    )
+                ),
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in parse custom import {error_string}"
+            assert isinstance(
+                response.json(), List
+            ), f"Bad response in parse custom import {error_string}"
+            row_schema: HiveLibrary.Row.Schema = HiveLibrary.Row.Schema(many=True)
+            rows: List[HiveLibrary.Row] = row_schema.load(response.json())
+            return rows
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def upload_custom_import(
+        self, project_id: UUID, rows: List[HiveLibrary.Row]
+    ) -> Optional[HiveLibrary.Task]:
+        """
+        Upload parsed rows
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param rows: Rows, example: [HiveLibrary.Row(cpelist=None, hostname='unit.test.com', ip=IPv4Address('192.168.1.1'), note=None, port=None, product=None, service=None, state=None, tag=None, version=None)]
+        :return: Task, example:
+        HiveLibrary.Task(id=None, type='custom_import', user_id=UUID('aa740c90-cd5d-498d-bfb4-97948aa243d1'),
+                         project_id=UUID('b9afa34e-d077-477c-8427-db730b303dc4'), data_source_id=281182,
+                         file_id=281184, file_uuid=UUID('0229c251-decd-421b-ba44-aae61436ab03'),
+                         file_name='custom_import.json', file_node_id=None,
+                         timestamp=datetime.datetime(2021, 10, 27, 14, 55, 5, 269680), state=None,
+                         total=1, current=1, exc_message=None, exc_type=None)
+        """
+        try:
+            response = self._session.post(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/custom/direct",
+                json={"rows": [HiveLibrary.Row.Schema().dump(row) for row in rows]},
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in upload rows custom import {error_string}"
+            assert isinstance(
+                response.json(), Dict
+            ), f"Bad response in upload rows custom import {error_string}"
+            task_schema: HiveLibrary.Task.Schema = HiveLibrary.Task.Schema()
+            task: HiveLibrary.Task = task_schema.load(response.json())
+            return task
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def custom_import(
+        self,
+        project_id: UUID,
+        file_location: str,
+        columns: List[str],
+        column_separator: str = ",",
+        row_separator: str = "\n",
+    ) -> Optional[HiveLibrary.Task]:
+        """
+        Custom import data from file
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param file_location: File location string, example: '/tmp/test.txt'
+        :param columns: Columns for import, example: ['hostname', 'ip']
+        :param column_separator: Column separator, example: ','
+        :param row_separator: Row separator, example: '\n'
+        :return: Task, example:
+        HiveLibrary.Task(id=None, type='custom_import', user_id=UUID('aa740c90-cd5d-498d-bfb4-97948aa243d1'),
+                         project_id=UUID('b9afa34e-d077-477c-8427-db730b303dc4'), data_source_id=281182,
+                         file_id=281184, file_uuid=UUID('0229c251-decd-421b-ba44-aae61436ab03'),
+                         file_name='custom_import.json', file_node_id=None,
+                         timestamp=datetime.datetime(2021, 10, 27, 14, 55, 5, 269680), state=None,
+                         total=1, current=1, exc_message=None, exc_type=None)
+        """
+        try:
+            with open(file_location, "r") as file:
+                data: str = file.read()
+            rows: Optional[List[HiveLibrary.Row]] = self.parse_custom_import(
+                project_id=project_id,
+                data=data,
+                columns=columns,
+                column_separator=column_separator,
+                row_separator=row_separator,
+            )
+            assert (
+                rows is not None
+            ), f"Failed to parse custom import file: {file_location}"
+            task: Optional[HiveLibrary.Task] = self.upload_custom_import(
+                project_id=project_id, rows=rows
+            )
+            assert (
+                task is not None
+            ), f"Failed to upload custom import file: {file_location}"
+            return task
+        except FileNotFoundError as error:
+            print(f"File not found error: {error.args[0]}")
+            return None
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def make_snapshot(
+        self, project_id: UUID, name: str, description: str
+    ) -> Optional[HiveLibrary.Snapshot]:
+        """
+        Make project snapshot
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param name: Snapshot name string, example: 'test'
+        :param description: Snapshot description string, example: 'test'
+        :return: Snapshot, example:
+        HiveLibrary.Snapshot(checksum='sha256:40f2771419d1f966761f10da9c72047815fe8092355e30869329905417065120',
+                             description='unit_test_snapshot_description', filesize=533.0, mimetype='application/json',
+                             name='unit_test_snapshot_name', project_id=UUID('3d902e40-be3f-4725-989f-ab5b485eb24f'),
+                             timestamp=datetime.datetime(2021, 10, 27, 15, 43, 6, 114653),
+                             user_id=UUID('aa740c90-cd5d-498d-bfb4-97948aa243d1'))
+        """
+        try:
+            response = self._session.post(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/snapshots/",
+                json=HiveLibrary.Snapshot.Schema().dump(
+                    HiveLibrary.Snapshot(name=name, description=description)
+                ),
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in make snapshot {error_string}"
+            assert isinstance(
+                response.json(), Dict
+            ), f"Bad response in make snapshot {error_string}"
+            snapshot_schema: HiveLibrary.Snapshot.Schema = HiveLibrary.Snapshot.Schema()
+            snapshot: HiveLibrary.Snapshot = snapshot_schema.load(response.json())
+            return snapshot
         except AssertionError as error:
             print(f"Assertion error: {error.args[0]}")
             return None

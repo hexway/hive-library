@@ -18,7 +18,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b4"
+__version__ = "0.0.1b5"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -123,4 +123,9 @@ class HiveVariables:
         value="unit_test_password",
         description="unit test credential",
         tags=[HiveLibrary.Tag(name="credential_tag")],
+    )
+
+    snapshot: HiveLibrary.Snapshot = HiveLibrary.Snapshot(
+        name="unit_test_snapshot_name",
+        description="unit_test_snapshot_description",
     )

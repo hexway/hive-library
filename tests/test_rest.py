@@ -11,6 +11,7 @@ from unittest import TestCase
 from tests.test_variables import HiveVariables
 from hive_library import HiveLibrary
 from hive_library.rest import HiveRestApi
+from hive_library.enum import RowTypes
 from typing import Optional, List
 from time import sleep
 from uuid import UUID
@@ -21,7 +22,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b4"
+__version__ = "0.0.1b5"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -417,6 +418,16 @@ class HiveRestApiTest(TestCase):
             project_id=variables.project.id, file_uuid=variables.file.uuid
         )
         self.assertEqual(file_content, variables.file_content)
+
+    def test34_make_snapshot(self):
+        snapshot = hive_api.make_snapshot(
+            project_id=variables.project.id,
+            name=variables.snapshot.name,
+            description=variables.snapshot.description,
+        )
+        self.assertIsInstance(snapshot, HiveLibrary.Snapshot)
+        self.assertEqual(snapshot.name, variables.snapshot.name)
+        self.assertEqual(snapshot.description, variables.snapshot.description)
 
     # Search
     def test41_search_by_ip(self):
@@ -839,3 +850,127 @@ class HiveRestApiTest(TestCase):
         )
         self.assertIsInstance(deleted_project, HiveLibrary.Project)
         self.assertEqual(deleted_project.name, variables.project.name)
+
+    # Import from nuclei json file
+    def test55_import_from_nuclei(self):
+        hive_api.delete_project_by_name(project_name=variables.project.name)
+        new_project = hive_api.create_project(variables.project)
+        self.assertIsInstance(new_project, HiveLibrary.Project)
+        self.assertEqual(new_project.name, variables.project.name)
+        project_id = new_project.id
+
+        task_id = hive_api.import_from_file(
+            file_location="nuclei_test.json",
+            import_type="nuclei",
+            project_id=project_id,
+            advanced_options=["autoTag", "importNucleiTags"],
+        )
+        self.assertIsInstance(task_id, UUID)
+
+        for _ in range(10):
+            if hive_api.task_is_completed(project_id=project_id, task_id=task_id):
+                break
+            else:
+                sleep(1)
+
+        hosts = hive_api.get_hosts(project_id=project_id)
+        self.assertIsInstance(hosts, List)
+        host = hosts[0]
+        self.assertIsInstance(host, HiveLibrary.Host)
+        self.assertEqual(host.ip, variables.host.ip)
+        self.assertEqual(host.names[0].hostname, variables.host.names[0].hostname)
+        self.assertEqual(host.ports[0].port, variables.host.ports[0].port)
+        self.assertEqual(host.ports[0].protocol, variables.host.ports[0].protocol)
+        self.assertEqual(host.ports[0].state, variables.host.ports[0].state)
+
+        port_id: int = host.ports[0].id
+
+        port_node = hive_api.get_host(project_id=project_id, host_id=port_id)
+        found_nc_template_record: bool = False
+        found_nc_severity_record: bool = False
+        found_nc_matched_record: bool = False
+        for record in port_node.records[0].value:
+            if record.name == "Template ID" and record.value == "CVE-2018-15473":
+                found_nc_template_record = True
+            if record.name == "Severity" and record.value == "low":
+                found_nc_severity_record = True
+            if record.name == "Matched" and record.value == "unit.test.com:12345":
+                found_nc_matched_record = True
+        self.assertTrue(found_nc_template_record)
+        self.assertTrue(found_nc_severity_record)
+        self.assertTrue(found_nc_matched_record)
+
+        deleted_project = hive_api.delete_project_by_name(
+            project_name=variables.project.name
+        )
+        self.assertIsInstance(deleted_project, HiveLibrary.Project)
+        self.assertEqual(deleted_project.name, variables.project.name)
+
+    # Custom import
+    def test56_custom_import(self):
+        hive_api.delete_project_by_name(project_name=variables.project.name)
+        new_project = hive_api.create_project(variables.project)
+        self.assertIsInstance(new_project, HiveLibrary.Project)
+        self.assertEqual(new_project.name, variables.project.name)
+        project_id = new_project.id
+
+        # Parse custom import
+        rows = hive_api.parse_custom_import(
+            project_id=project_id,
+            data=f"{variables.host.names[0].hostname},{variables.host.ip}",
+            columns=[RowTypes.HOSTNAME.value, RowTypes.IP.value],
+            column_separator=",",
+            row_separator="\n",
+        )
+        self.assertIsInstance(rows, List)
+        self.assertIsInstance(rows[0], HiveLibrary.Row)
+        row: HiveLibrary.Row = rows[0]
+        self.assertEqual(row.ip, str(variables.host.ip))
+        self.assertEqual(row.hostname, str(variables.host.names[0].hostname))
+
+        # Upload custom import
+        task = hive_api.upload_custom_import(
+            project_id=project_id,
+            rows=[
+                HiveLibrary.Row(
+                    ip=variables.host.ip, hostname=variables.host.names[0].hostname
+                )
+            ],
+        )
+        self.assertIsInstance(task, HiveLibrary.Task)
+        self.assertEqual(task.type, "custom_import")
+        self.assertEqual(task.project_id, project_id)
+
+        hosts = hive_api.get_hosts(project_id=project_id)
+        self.assertIsInstance(hosts, List)
+        host = hosts[0]
+        self.assertIsInstance(host, HiveLibrary.Host)
+        self.assertEqual(host.ip, variables.host.ip)
+        self.assertEqual(host.names[0].hostname, variables.host.names[0].hostname)
+
+        hive_api.delete_project_by_name(project_name=variables.project.name)
+        new_project = hive_api.create_project(variables.project)
+        self.assertIsInstance(new_project, HiveLibrary.Project)
+        self.assertEqual(new_project.name, variables.project.name)
+        project_id = new_project.id
+
+        # Custom import
+        task = hive_api.custom_import(
+            project_id=project_id,
+            file_location="custom_import.txt",
+            columns=[RowTypes.HOSTNAME.value, RowTypes.IP.value],
+            column_separator=",",
+            row_separator="\n",
+        )
+        self.assertIsInstance(task, HiveLibrary.Task)
+        self.assertEqual(task.type, "custom_import")
+        self.assertEqual(task.project_id, project_id)
+
+        hosts = hive_api.get_hosts(project_id=project_id)
+        self.assertIsInstance(hosts, List)
+        host = hosts[0]
+        self.assertIsInstance(host, HiveLibrary.Host)
+        self.assertIn(str(host.ip), ["1.1.1.1", "2.2.2.2"])
+        self.assertIn(str(host.names[0].hostname), ["test1.com", "test2.com"])
+
+        hive_api.delete_project_by_name(project_name=variables.project.name)

@@ -186,7 +186,9 @@ for _ in range(10):
         sleep(1)
 
 # Get imported hosts
-imported_hosts: Optional[List[HiveLibrary.Host]] = hive_api.get_hosts(project_id=project.id)
+imported_hosts: Optional[List[HiveLibrary.Host]] = hive_api.get_hosts(
+    project_id=project.id
+)
 print(f"Imported hosts: \n{imported_hosts}\n")
 
 # Delete project

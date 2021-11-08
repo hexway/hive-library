@@ -36,7 +36,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b5"
+__version__ = "0.0.1b6"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -890,6 +890,8 @@ class HiveLibrary:
                         data["records"] = new_records
                 if "ip" in data:
                     if data["ip"] == "UNKNOWN":
+                        data["ip"] = None
+                    if data["ip"] == "":
                         data["ip"] = None
                 return data
 

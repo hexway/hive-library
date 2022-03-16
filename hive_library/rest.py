@@ -22,7 +22,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b7"
+__version__ = "0.0.1b8"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -109,7 +109,7 @@ class HiveRestApi:
         self._session: Session = Session()
         self._session.headers.update(
             {
-                "User-Agent": "Hive Client/" + "0.0.1b7",
+                "User-Agent": "Hive Client/" + "0.0.1b8",
                 "Accept": "application/json",
                 "Connection": "close",
             }
@@ -1583,6 +1583,54 @@ class HiveRestApi:
         except FileNotFoundError as error:
             print(f"File not found error: {error.args[0]}")
             return None
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def custom_import_string(
+            self,
+            project_id: UUID,
+            data: str,
+            columns: List[str],
+            column_separator: str = ",",
+            row_separator: str = "\n"
+    ) -> Optional[HiveLibrary.Task]:
+        """
+        Custom import data from string
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param data: Data string, example: 'test1.com,1.1.1.1'
+        :param columns: Columns for import, example: ['hostname', 'ip']
+        :param column_separator: Column separator, example: ','
+        :param row_separator: Row separator, example: '\n'
+        :return: Task, example:
+        HiveLibrary.Task(id=None, type='custom_import', user_id=UUID('aa740c90-cd5d-498d-bfb4-97948aa243d1'),
+                         project_id=UUID('b9afa34e-d077-477c-8427-db730b303dc4'), data_source_id=281182,
+                         file_id=281184, file_uuid=UUID('0229c251-decd-421b-ba44-aae61436ab03'),
+                         file_name='custom_import.json', file_node_id=None,
+                         timestamp=datetime.datetime(2021, 10, 27, 14, 55, 5, 269680), state=None,
+                         total=1, current=1, exc_message=None, exc_type=None)
+        """
+        try:
+            rows: Optional[List[HiveLibrary.Row]] = self.parse_custom_import(
+                project_id=project_id,
+                data=data,
+                columns=columns,
+                column_separator=column_separator,
+                row_separator=row_separator,
+            )
+            assert (
+                rows is not None
+            ), f"Failed to parse custom data: {data}"
+            task: Optional[HiveLibrary.Task] = self.upload_custom_import(
+                project_id=project_id, rows=rows
+            )
+            assert (
+                task is not None
+            ), f"Failed to upload custom data: {data}"
+            return task
         except AssertionError as error:
             print(f"Assertion error: {error.args[0]}")
             return None

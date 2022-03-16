@@ -974,3 +974,31 @@ class HiveRestApiTest(TestCase):
         self.assertIn(str(host.names[0].hostname), ["test1.com", "test2.com"])
 
         hive_api.delete_project_by_name(project_name=variables.project.name)
+        new_project = hive_api.create_project(variables.project)
+        self.assertIsInstance(new_project, HiveLibrary.Project)
+        self.assertEqual(new_project.name, variables.project.name)
+        project_id = new_project.id
+
+        # Custom import from string
+        with open("custom_import.txt", "r") as file:
+            data: str = file.read()
+
+        task = hive_api.custom_import_string(
+            project_id=project_id,
+            data=data,
+            columns=[RowTypes.HOSTNAME.value, RowTypes.IP.value],
+            column_separator=",",
+            row_separator="\n"
+        )
+
+        self.assertIsInstance(task, HiveLibrary.Task)
+        self.assertEqual(task.type, "custom_import")
+        self.assertEqual(task.project_id, project_id)
+
+        hosts = hive_api.get_hosts(project_id=project_id)
+        self.assertIsInstance(hosts, List)
+        host = hosts[0]
+        self.assertIsInstance(host, HiveLibrary.Host)
+        self.assertIn(str(host.ip), ["1.1.1.1", "2.2.2.2"])
+        self.assertIn(str(host.names[0].hostname), ["test1.com", "test2.com"])
+        hive_api.delete_project_by_name(project_name=variables.project.name)

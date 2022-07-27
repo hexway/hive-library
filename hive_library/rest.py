@@ -22,7 +22,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b8"
+__version__ = "0.0.1b9"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -109,7 +109,7 @@ class HiveRestApi:
         self._session: Session = Session()
         self._session.headers.update(
             {
-                "User-Agent": "Hive Client/" + "0.0.1b8",
+                "User-Agent": "Hive Client/" + "0.0.1b9",
                 "Accept": "application/json",
                 "Connection": "close",
             }
@@ -488,6 +488,111 @@ class HiveRestApi:
             host_schema: HiveLibrary.Project.Schema = HiveLibrary.Host.Schema(many=True)
             hosts: List[HiveLibrary.Host] = host_schema.load(response.json())
             return hosts
+
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def get_issues(self, project_id: UUID) -> Optional[List[HiveLibrary.Issue]]:
+        """
+        Get Issues
+        @param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        @return: None if error or List of issues, example:
+        [HiveLibrary.Issue(uuid=UUID('2557c338-8b2b-483c-8884-16055b371566'), name='test',
+                           ips=['1.1.1.1', '2.2.2.2'], hostnames=['test.com'],
+                           criticality_score=1, probability_score=1,
+                           weakness_type='cwe-123',
+                           additional_fields=HiveLibrary.Issue.AdditionalFields(general_description='desc',
+                                                                                risks_description='risk',
+                                                                                technical_description='tech',
+                                                                                reproduce_description='steps',
+                                                                                recommendations='recommendations'),
+                           files=[], requests=[HiveLibrary.Issue.Request(request='123',
+                                                                         response='345',
+                                                                         id=1231392,
+                                                                         parent_id=1231350)],
+                           checkmark_count=0, creator_uuid=UUID('bc33859d-9ef9-44f6-a75e-2db032108c08'),
+                           edit_time=datetime.datetime(2022, 7, 15, 10, 36, 49, 252167),
+                           post_time=datetime.datetime(2022, 7, 13, 10, 50, 23, 822338),
+                           id=1231350)]
+        """
+        try:
+            response = self._session.get(
+                self._server + self._endpoints.project + f"/{project_id}/graph/issues"
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in get issues {error_string}"
+            assert isinstance(
+                response.json(), List
+            ), f"Bad response in get issues {error_string}"
+            issues_schema: HiveLibrary.Issue.Schema = HiveLibrary.Issue.Schema(
+                many=True
+            )
+            issues: List[HiveLibrary.Issue] = issues_schema.load(response.json())
+            return issues
+
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def get_issue(
+        self, project_id: UUID, issue_uuid: UUID
+    ) -> Optional[HiveLibrary.Issue]:
+        """
+        Get Issue by UUID
+        @param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        @param issue_uuid: Issue UUID string, example: '66717b2e-9046-4a17-9928-590393a823d4'
+        @return: None if error or Issue, example:
+        HiveLibrary.Issue(uuid=UUID('2557c338-8b2b-483c-8884-16055b371566'), name='test',
+                          ips=['1.1.1.1', '2.2.2.2'], hostnames=['test.com'],
+                          criticality_score=1, probability_score=1,
+                          weakness_type='cwe-123',
+                          additional_fields=HiveLibrary.Issue.AdditionalFields(general_description='desc',
+                                                                                risks_description='risk',
+                                                                                technical_description='tech',
+                                                                                reproduce_description='steps',
+                                                                                recommendations='recommendations'),
+                          files=[], requests=[HiveLibrary.Issue.Request(request='123',
+                                                                         response='345',
+                                                                         id=1231392,
+                                                                         parent_id=1231350)],
+                          checkmark_count=0, creator_uuid=UUID('bc33859d-9ef9-44f6-a75e-2db032108c08'),
+                          edit_time=datetime.datetime(2022, 7, 15, 10, 36, 49, 252167),
+                          post_time=datetime.datetime(2022, 7, 13, 10, 50, 23, 822338),
+                          id=1231350)
+        """
+        try:
+            response = self._session.get(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/issues/{issue_uuid}"
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in get issue by UUID {error_string}"
+            assert isinstance(
+                response.json(), Dict
+            ), f"Bad response in get issue by UUID {error_string}"
+            issue_schema: HiveLibrary.Issue.Schema = HiveLibrary.Issue.Schema(
+                many=False
+            )
+            issue: HiveLibrary.Issue = issue_schema.load(response.json())
+            return issue
 
         except AssertionError as error:
             print(f"Assertion error: {error.args[0]}")
@@ -1379,6 +1484,190 @@ class HiveRestApi:
             print(f"JSON Decode error: {error.args[0]}")
             return None
 
+    def create_issues(
+        self, project_id: UUID, issues: List[HiveLibrary.Issue]
+    ) -> Optional[List[HiveLibrary.Issue]]:
+        """
+        Create Issues
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param issues: List of issues
+        :return: None if error or List of issues, example:
+        [HiveLibrary.Issue(uuid=UUID('2557c338-8b2b-483c-8884-16055b371566'), name='test',
+                           ips=['1.1.1.1', '2.2.2.2'], hostnames=['test.com'],
+                           criticality_score=1, probability_score=1,
+                           weakness_type='cwe-123',
+                           additional_fields=HiveLibrary.Issue.AdditionalFields(general_description='desc',
+                                                                                risks_description='risk',
+                                                                                technical_description='tech',
+                                                                                reproduce_description='steps',
+                                                                                recommendations='recommendations'),
+                           files=[], requests=[HiveLibrary.Issue.Request(request='123',
+                                                                         response='345',
+                                                                         id=1231392,
+                                                                         parent_id=1231350)],
+                           checkmark_count=0, creator_uuid=UUID('bc33859d-9ef9-44f6-a75e-2db032108c08'),
+                           edit_time=datetime.datetime(2022, 7, 15, 10, 36, 49, 252167),
+                           post_time=datetime.datetime(2022, 7, 13, 10, 50, 23, 822338),
+                           id=1231350)]
+
+        """
+        try:
+            response: Response = self._session.post(
+                self._server + self._endpoints.project + f"/{project_id}/graph/issues",
+                json=HiveLibrary.Issue.Schema(many=True).dump(issues),
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in create issues {error_string}"
+            assert isinstance(
+                response.json(), List
+            ), f"Bad response in create issues {error_string}"
+            assert (
+                len(response.json()) >= 1
+            ), f"Bad response in create issues {error_string}"
+            issues_schema: HiveLibrary.Issue.Schema = HiveLibrary.Issue.Schema(
+                many=True
+            )
+            created_issues: List[HiveLibrary.Issue] = issues_schema.load(
+                response.json()
+            )
+
+            # Add requests to created issues
+            for issue in issues:
+                for created_issue in created_issues:
+                    if len(issue.requests) > 0:
+                        if issue.name == created_issue.name:
+                            for request in issue.requests:
+                                request.node_id = created_issue.id
+                            response: Response = self._session.post(
+                                self._server
+                                + self._endpoints.project
+                                + f"/{project_id}/graph/nodes",
+                                json=HiveLibrary.Issue.Request.Schema(many=True).dump(
+                                    issue.requests
+                                ),
+                            )
+                            assert (
+                                response.status_code == 200
+                            ), f"Bad status code to add request to issues {error_string}"
+                            assert isinstance(
+                                response.json(), List
+                            ), f"Bad response to add request to issues {error_string}"
+                            assert (
+                                len(response.json()) >= 1
+                            ), f"Bad response to add request to issues {error_string}"
+                            requests_schema: HiveLibrary.Issue.Schema = (
+                                HiveLibrary.Issue.Request.Schema(many=True)
+                            )
+                            created_requests: List[
+                                HiveLibrary.Issue.Request
+                            ] = requests_schema.load(response.json())
+                            created_issue.requests = created_requests
+
+            return created_issues
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
+    def create_issue(
+        self, project_id: UUID, issue: HiveLibrary.Issue
+    ) -> Optional[HiveLibrary.Issue]:
+        """
+        Create Issue
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param issue: Issue
+        :return: None if error or Issue, example:
+        HiveLibrary.Issue(uuid=UUID('2557c338-8b2b-483c-8884-16055b371566'), name='test',
+                          ips=['1.1.1.1', '2.2.2.2'], hostnames=['test.com'],
+                          criticality_score=1, probability_score=1,
+                          weakness_type='cwe-123',
+                          additional_fields=HiveLibrary.Issue.AdditionalFields(general_description='desc',
+                                                                                risks_description='risk',
+                                                                                technical_description='tech',
+                                                                                reproduce_description='steps',
+                                                                                recommendations='recommendations'),
+                          files=[], requests=[HiveLibrary.Issue.Request(request='123',
+                                                                         response='345',
+                                                                         id=1231392,
+                                                                         parent_id=1231350)],
+                          checkmark_count=0, creator_uuid=UUID('bc33859d-9ef9-44f6-a75e-2db032108c08'),
+                          edit_time=datetime.datetime(2022, 7, 15, 10, 36, 49, 252167),
+                          post_time=datetime.datetime(2022, 7, 13, 10, 50, 23, 822338),
+                          id=1231350)
+
+        """
+        created_issues = self.create_issues(project_id=project_id, issues=[issue])
+        if isinstance(created_issues, List):
+            return created_issues[0]
+        else:
+            return None
+
+    def change_issue(
+        self, project_id: UUID, issue: HiveLibrary.Issue
+    ) -> Optional[HiveLibrary.Issue]:
+        """
+        Change Issue
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param issue: Issue
+        :return: None if error or Issue, example:
+        HiveLibrary.Issue(uuid=UUID('2557c338-8b2b-483c-8884-16055b371566'), name='test',
+                          ips=['1.1.1.1', '2.2.2.2'], hostnames=['test.com'],
+                          criticality_score=1, probability_score=1,
+                          weakness_type='cwe-123',
+                          additional_fields=HiveLibrary.Issue.AdditionalFields(general_description='desc',
+                                                                                risks_description='risk',
+                                                                                technical_description='tech',
+                                                                                reproduce_description='steps',
+                                                                                recommendations='recommendations'),
+                          files=[], requests=[HiveLibrary.Issue.Request(request='123',
+                                                                         response='345',
+                                                                         id=1231392,
+                                                                         parent_id=1231350)],
+                          checkmark_count=0, creator_uuid=UUID('bc33859d-9ef9-44f6-a75e-2db032108c08'),
+                          edit_time=datetime.datetime(2022, 7, 15, 10, 36, 49, 252167),
+                          post_time=datetime.datetime(2022, 7, 13, 10, 50, 23, 822338),
+                          id=1231350)
+
+        """
+        try:
+            assert isinstance(
+                issue.uuid, UUID
+            ), f"Issue UUID is empty, please set issue uuid!"
+            issue_json = HiveLibrary.Issue.Schema(many=False).dump(issue)
+            issue_json["uuid"] = str(issue.uuid)
+            response: Response = self._session.patch(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/issues/{issue.uuid}",
+                json=issue_json,
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in change issue {error_string}"
+            assert isinstance(
+                response.json(), Dict
+            ), f"Bad response in change issue {error_string}"
+            issue_schema: HiveLibrary.Issue.Schema = HiveLibrary.Issue.Schema(
+                many=False
+            )
+            changed_issue: HiveLibrary.Issue = issue_schema.load(response.json())
+            return changed_issue
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
     def upload_file(
         self,
         file_name: str,
@@ -1591,12 +1880,12 @@ class HiveRestApi:
             return None
 
     def custom_import_string(
-            self,
-            project_id: UUID,
-            data: str,
-            columns: List[str],
-            column_separator: str = ",",
-            row_separator: str = "\n"
+        self,
+        project_id: UUID,
+        data: str,
+        columns: List[str],
+        column_separator: str = ",",
+        row_separator: str = "\n",
     ) -> Optional[HiveLibrary.Task]:
         """
         Custom import data from string
@@ -1621,15 +1910,11 @@ class HiveRestApi:
                 column_separator=column_separator,
                 row_separator=row_separator,
             )
-            assert (
-                rows is not None
-            ), f"Failed to parse custom data: {data}"
+            assert rows is not None, f"Failed to parse custom data: {data}"
             task: Optional[HiveLibrary.Task] = self.upload_custom_import(
                 project_id=project_id, rows=rows
             )
-            assert (
-                task is not None
-            ), f"Failed to upload custom data: {data}"
+            assert task is not None, f"Failed to upload custom data: {data}"
             return task
         except AssertionError as error:
             print(f"Assertion error: {error.args[0]}")
@@ -1682,6 +1967,61 @@ class HiveRestApi:
             return None
 
     # Delete methods
+    def delete_issue_by_id(
+        self, project_id: UUID, issue_id: int
+    ) -> Optional[HiveLibrary.Issue]:
+        """
+        Delete issue by identifier
+        :param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param issue_id: Issue id integer, example: 123
+        :return: None if error or Project object, example:
+        HiveLibrary.Issue(uuid=UUID('2557c338-8b2b-483c-8884-16055b371566'), name='test',
+                          ips=['1.1.1.1', '2.2.2.2'], hostnames=['test.com'],
+                          criticality_score=1, probability_score=1,
+                          weakness_type='cwe-123',
+                          additional_fields=HiveLibrary.Issue.AdditionalFields(general_description='desc',
+                                                                                risks_description='risk',
+                                                                                technical_description='tech',
+                                                                                reproduce_description='steps',
+                                                                                recommendations='recommendations'),
+                          files=[], requests=[HiveLibrary.Issue.Request(request='123',
+                                                                         response='345',
+                                                                         id=1231392,
+                                                                         parent_id=1231350)],
+                          checkmark_count=0, creator_uuid=UUID('bc33859d-9ef9-44f6-a75e-2db032108c08'),
+                          edit_time=datetime.datetime(2022, 7, 15, 10, 36, 49, 252167),
+                          post_time=datetime.datetime(2022, 7, 13, 10, 50, 23, 822338),
+                          id=1231350)
+        """
+        try:
+            response = self._session.delete(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/nodes/{issue_id}"
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            assert (
+                response.status_code == 200
+            ), f"Bad status code in get issue by UUID {error_string}"
+            assert isinstance(
+                response.json(), Dict
+            ), f"Bad response in get issue by UUID {error_string}"
+            issue_schema: HiveLibrary.Issue.Schema = HiveLibrary.Issue.Schema(
+                many=False
+            )
+            issue: HiveLibrary.Issue = issue_schema.load(response.json())
+            return issue
+
+        except AssertionError as error:
+            print(f"Assertion error: {error.args[0]}")
+            return None
+
+        except JSONDecodeError as error:
+            print(f"JSON Decode error: {error.args[0]}")
+            return None
+
     def delete_project_by_id(self, project_id: UUID) -> Optional[HiveLibrary.Project]:
         """
         Delete project by identifier

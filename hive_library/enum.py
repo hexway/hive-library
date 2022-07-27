@@ -15,7 +15,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b8"
+__version__ = "0.0.1b9"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -66,3 +66,24 @@ class RowTypes(str, ListEnum):
     TAG = "tag"
     VERSION = "version"
     DUMMY = "dummy"
+
+
+class CriticalityScores(int, ListEnum):
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+
+
+class ProbabilityScores(int, ListEnum):
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+
+
+class IssueStatuses(str, ListEnum):
+    DRAFT = "draft"
+    VERIFIED = "verified"
+    READY = "ready"
+    FIX_CONFIRMED = "fix_confirmed"
+    FIX_UNCONFIRMED = "fix_unconfirmed"
+    RETEST_REQUIRED = "retest_required"

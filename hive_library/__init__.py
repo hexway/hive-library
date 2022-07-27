@@ -7,7 +7,15 @@ Copyright 2021, HexWay
 """
 
 # Import
-from hive_library.enum import RecordTypes, PermissionTypes, TaskStates, RowTypes
+from hive_library.enum import (
+    RecordTypes,
+    PermissionTypes,
+    TaskStates,
+    RowTypes,
+    CriticalityScores,
+    ProbabilityScores,
+    IssueStatuses,
+)
 from typing import List, Dict, Optional, Union
 from uuid import UUID
 from dataclasses import dataclass, field
@@ -36,7 +44,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b8"
+__version__ = "0.0.1b9"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -1243,6 +1251,217 @@ class HiveLibrary:
             @post_load
             def make_snapshot(self, data, **kwargs):
                 return HiveLibrary.Snapshot(**data)
+
+    @dataclass
+    class Issue:
+        uuid: Optional[UUID] = None
+        status: Optional[str] = None
+        name: Optional[str] = None
+        ips: Optional[List[str]] = field(default_factory=lambda: [])
+        hostnames: Optional[List[str]] = field(default_factory=lambda: [])
+        criticality_score: Optional[int] = None
+        probability_score: Optional[int] = None
+        weakness_type: Optional[str] = None
+        additional_fields: Optional["HiveLibrary.Issue.AdditionalFields"] = None
+        files: Optional[List["HiveLibrary.File"]] = field(default_factory=lambda: [])
+        requests: Optional[List["HiveLibrary.Issue.Request"]] = field(
+            default_factory=lambda: []
+        )
+        checkmark_count: Optional[int] = None
+        creator_uuid: Optional[UUID] = None
+        edit_time: Optional[datetime] = None
+        post_time: Optional[datetime] = None
+        id: Optional[int] = None
+
+        @dataclass
+        class AdditionalFields:
+            general_description: Optional[str] = None
+            risks_description: Optional[str] = None
+            technical_description: Optional[str] = None
+            reproduce_description: Optional[str] = None
+            recommendations: Optional[str] = None
+
+            class Schema(MarshmallowSchema):
+                general_description = fields.String(
+                    missing=None, default=None, data_key="generalDescription"
+                )
+                risks_description = fields.String(
+                    missing=None, default=None, data_key="risksDescription"
+                )
+                technical_description = fields.String(
+                    missing=None, default=None, data_key="technicalDescription"
+                )
+                reproduce_description = fields.String(
+                    missing=None, default=None, data_key="reproduceDescription"
+                )
+                recommendations = fields.String(missing=None, default=None)
+
+                class Meta:
+                    unknown = EXCLUDE
+
+                @post_load
+                def make_issue_additional_fields(self, data, **kwargs):
+                    return HiveLibrary.Issue.AdditionalFields(**data)
+
+        @dataclass
+        class Request:
+            request: Optional[str] = None
+            response: Optional[str] = None
+            id: Optional[int] = None
+            node_id: Optional[int] = None
+            parent_id: Optional[int] = None
+            base_node_id: Optional[int] = None
+            uuid: Optional[UUID] = None
+            creator_uuid: Optional[UUID] = None
+            create_time: Optional[datetime] = None
+
+            class Schema(MarshmallowSchema):
+                request = fields.String(missing=None, default=None)
+                response = fields.String(missing=None, default=None)
+                id = fields.Integer(
+                    missing=None,
+                    default=None,
+                    load_only=True,
+                )
+                node_id = fields.Integer(
+                    missing=None,
+                    default=None,
+                    data_key="nodeId",
+                )
+                parent_id = fields.Integer(
+                    missing=None,
+                    default=None,
+                    load_only=True,
+                    data_key="parentId",
+                )
+                base_node_id = fields.Integer(
+                    missing=None,
+                    default=None,
+                    load_only=True,
+                    data_key="baseNodeId",
+                )
+                uuid = fields.UUID(missing=None, default=None, load_only=True)
+                creator_uuid = fields.UUID(
+                    missing=None,
+                    default=None,
+                    data_key="creatorUuid",
+                    load_only=True,
+                )
+                create_time = fields.DateTime(
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
+                    missing=None,
+                    default=None,
+                    data_key="createTime",
+                    load_only=True,
+                )
+
+                class Meta:
+                    unknown = EXCLUDE
+
+                @post_load
+                def make_issue_request(self, data, **kwargs):
+                    return HiveLibrary.Issue.Request(**data)
+
+        class Schema(MarshmallowSchema):
+            uuid = fields.UUID(missing=None, default=None, load_only=True)
+            status = fields.String(
+                missing=None,
+                default=None,
+                validate=validate.OneOf(IssueStatuses.list(), None),
+            )
+            name = fields.String(required=True)
+            ips = fields.List(
+                fields.String,
+                many=True,
+                missing=[],
+                default=[],
+                allow_none=False,
+                data_key="ips",
+            )
+            hostnames = fields.List(
+                fields.String,
+                many=True,
+                missing=[],
+                default=[],
+                allow_none=False,
+                data_key="hostnames",
+            )
+            criticality_score = fields.Integer(
+                missing=None,
+                default=None,
+                data_key="criticalityScore",
+                validate=validate.OneOf(CriticalityScores.list(), None),
+            )
+            probability_score = fields.Integer(
+                missing=None,
+                default=None,
+                data_key="probabilityScore",
+                validate=validate.OneOf(ProbabilityScores.list(), None),
+            )
+            weakness_type = fields.String(
+                missing=None, default=None, data_key="weaknessType"
+            )
+            additional_fields = fields.Nested(
+                lambda: HiveLibrary.Issue.AdditionalFields.Schema,
+                data_key="additionalFields",
+                missing={},
+                default={},
+                allow_none=True,
+            )
+            files = fields.Nested(
+                lambda: HiveLibrary.File.Schema,
+                many=True,
+                missing=[],
+                default=[],
+                allow_none=True,
+                load_only=True,
+            )
+            requests = fields.Nested(
+                lambda: HiveLibrary.Issue.Request.Schema,
+                many=True,
+                missing=[],
+                default=[],
+                allow_none=True,
+                load_only=True,
+            )
+            checkmark_count = fields.Integer(
+                missing=None,
+                default=None,
+                data_key="checkmarkCount",
+                load_only=True,
+            )
+            creator_uuid = fields.UUID(
+                missing=None,
+                default=None,
+                data_key="creatorUuid",
+                load_only=True,
+            )
+            edit_time = fields.DateTime(
+                "%Y-%m-%dT%H:%M:%S.%fZ",
+                missing=None,
+                default=None,
+                data_key="editTime",
+                load_only=True,
+            )
+            post_time = fields.DateTime(
+                "%Y-%m-%dT%H:%M:%S.%fZ",
+                missing=None,
+                default=None,
+                data_key="postTime",
+                load_only=True,
+            )
+            id = fields.Integer(
+                missing=None,
+                default=None,
+                load_only=True,
+            )
+
+            class Meta:
+                unknown = EXCLUDE
+
+            @post_load
+            def make_issue(self, data, **kwargs):
+                return HiveLibrary.Issue(**data)
 
     @staticmethod
     def load_config() -> Config:

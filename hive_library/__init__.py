@@ -44,7 +44,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2021, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b9"
+__version__ = "0.0.1b10"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -360,7 +360,7 @@ class HiveLibrary:
         creator_uuid: Optional[UUID] = None
         editor_uuid: Optional[UUID] = None
         description: Optional[str] = None
-        done: bool = False
+        done: Optional[str] = None
         synchronizable: bool = False
         name: Optional[str] = None
         order: Optional[int] = None
@@ -389,7 +389,7 @@ class HiveLibrary:
                 load_only=True, missing=None, default=None, data_key="editorUuid"
             )
             description = fields.String(default=None, allow_none=True)
-            done = fields.Bool(default=False)
+            done = fields.String(default=None)
             synchronizable = fields.Bool(default=False)
             name = fields.String(default=None, allow_none=True)
             order = fields.Integer(

@@ -3,7 +3,7 @@
 Hive dataclasses
 Author: HexWay
 License: MIT
-Copyright 2021, HexWay
+Copyright 2022, HexWay
 """
 
 # Import
@@ -41,10 +41,10 @@ from pathlib import Path
 
 # Authorship information
 __author__ = "HexWay"
-__copyright__ = "Copyright 2021, HexWay"
+__copyright__ = "Copyright 2022, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b10"
+__version__ = "0.0.1b11"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -101,7 +101,6 @@ class HiveLibrary:
             )
             user = fields.Dict(missing=None)
             create_date = fields.DateTime(
-                "%Y-%m-%dT%H:%M:%S.%fZ",
                 missing=None,
                 data_key="userCreateDate",
             )
@@ -110,7 +109,6 @@ class HiveLibrary:
             is_admin = fields.Bool(default=False, data_key="userIsAdmin")
             is_confirmed = fields.Bool(default=False, data_key="userIsConfirmed")
             last_confirmed = fields.DateTime(
-                "%Y-%m-%dT%H:%M:%S.%fZ",
                 missing=None,
                 data_key="userLastConfirmed",
             )

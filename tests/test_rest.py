@@ -1,9 +1,9 @@
 # Description
 """
-test_hive_api.py: Unit tests for Hive REST API
+test_rest.py: Unit tests for Hive REST API
 Author: HexWay
 License: MIT
-Copyright 2021, HexWay
+Copyright 2022, HexWay
 """
 
 # Import
@@ -19,10 +19,10 @@ from ipaddress import IPv4Address
 
 # Authorship information
 __author__ = "HexWay"
-__copyright__ = "Copyright 2021, HexWay"
+__copyright__ = "Copyright 2022, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b7"
+__version__ = "0.0.1b11"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -39,13 +39,12 @@ hive_api: HiveRestApi = HiveRestApi(
 )
 
 
-# Class MsfRestApiTest
+# Class HiveRestApiTest
 class HiveRestApiTest(TestCase):
 
     # Auth
     def test01_check_auth(self):
         hive_api._session.cookies.clear()
-        del hive_api._session.headers["Cookie"]
         config: HiveLibrary.Config = HiveLibrary.load_config()
         variables.username = config.username
         variables.password = config.password
@@ -53,7 +52,7 @@ class HiveRestApiTest(TestCase):
             username=variables.username, password=variables.password
         )
         self.assertIsInstance(user, HiveLibrary.User)
-        self.assertEqual(user.name, variables.username)
+        self.assertIn(variables.username, [user.name, user.login, user.email])
         cookie = hive_api._get_cookie()
         self.assertTrue(hive_api._check_cookie(cookie=cookie))
 
@@ -108,6 +107,7 @@ class HiveRestApiTest(TestCase):
             project_id=variables.project.id, hosts=hosts
         )
         self.assertIsNotNone(task_id)
+        variables.task.id = None
         for _ in range(30):
             task: Optional[HiveLibrary.Task] = hive_api.get_task(
                 project_id=variables.project.id, task_id=task_id
@@ -124,6 +124,7 @@ class HiveRestApiTest(TestCase):
         self.assertIsNotNone(variables.task.id)
 
     def test12_task_is_completed(self):
+        self.assertIsNotNone(variables.task.id)
         task_is_completed = hive_api.task_is_completed(
             project_id=variables.project.id, task_id=variables.task.id
         )

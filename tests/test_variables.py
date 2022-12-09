@@ -1,9 +1,9 @@
 # Description
 """
-test_msf_api.py: Unit tests for MSF REST API
+test_variables.py: Variables for tests Hive REST API
 Author: HexWay
 License: MIT
-Copyright 2021, HexWay
+Copyright 2022, HexWay
 """
 
 # Import
@@ -15,10 +15,10 @@ from typing import Optional
 
 # Authorship information
 __author__ = "HexWay"
-__copyright__ = "Copyright 2021, HexWay"
+__copyright__ = "Copyright 2022, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b10"
+__version__ = "0.0.1b11"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"

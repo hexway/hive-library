@@ -3,7 +3,7 @@
 Hive REST API library
 Author: HexWay
 License: MIT
-Copyright 2023, HexWay
+Copyright 2022, HexWay
 """
 
 # Import
@@ -190,7 +190,7 @@ class HiveRestApi:
         )
 
     def _get_cookie(self) -> str:
-        return f'SESSIONID={self._session.cookies.get("SESSIONID")}'
+        return f'BSESSIONID={self._session.cookies.get("BSESSIONID")}'
 
     # Auth
     def _password_auth(

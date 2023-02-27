@@ -3,7 +3,7 @@
 Hive REST API library
 Author: HexWay
 License: MIT
-Copyright 2022, HexWay
+Copyright 2023, HexWay
 """
 
 # Import

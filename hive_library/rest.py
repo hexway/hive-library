@@ -3,8 +3,11 @@
 Hive REST API library
 Author: HexWay
 License: MIT
-Copyright 2022, HexWay
+Copyright 2023, HexWay
 """
+from ssl import SSLCertVerificationError
+
+from requests.exceptions import SSLError
 
 # Import
 from hive_library import HiveLibrary
@@ -19,10 +22,10 @@ from os import path
 
 # Authorship information
 __author__ = "HexWay"
-__copyright__ = "Copyright 2022, HexWay"
+__copyright__ = "Copyright 2023, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b11"
+__version__ = "0.0.1b12"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -63,6 +66,7 @@ class HiveRestApi:
         proxy: Optional[str] = None,
         project_id: Optional[UUID] = None,
         debug: bool = False,
+        ssl_verify: bool = True,
     ) -> None:
         """
         Init HiveRestApi Class
@@ -70,9 +74,10 @@ class HiveRestApi:
         @param username: Hive username string, example: 'user@mail.com'
         @param password: Hive password string, example: 'Password'
         @param proxy: HTTP Proxy URL string, example: http://127.0.0.1:8080
-        @param cookie: Hive cookie string, example: 'SESSIONID=5025db17-a019-4980-9b15-0ffc71a7d0bd'
+        @param cookie: Hive cookie string, example: 'BSESSIONID=.eJwljksOAjEIQO_StZNQSil9GQOlR...'
         @param project_id: Project identifier UUID, example: 'be282469-5615-493b-842b-733e6f0b015a'
         @param debug: Run debug mode or not
+        @param ssl_verify: Check SSL or not
         """
 
         # Load variables from config yaml
@@ -109,7 +114,7 @@ class HiveRestApi:
         self._session: Session = Session()
         self._session.headers.update(
             {
-                "User-Agent": "Hive Client/" + "0.0.1b11",
+                "User-Agent": "Hive Client/" + "0.0.1b12",
                 "Accept": "application/json",
                 "Connection": "close",
             }
@@ -127,6 +132,10 @@ class HiveRestApi:
             )
             config.proxy = proxy
 
+        # SSL
+        if not ssl_verify:
+            self._session.verify = False
+
         # Authenticate
         try:
             # Check cookie
@@ -140,10 +149,9 @@ class HiveRestApi:
                             raise AuthenticationError(
                                 message="Bad creds", errors="Hive REST API auth error"
                             )
-                        else:
-                            config.username = username
-                            config.password = password
-                            config.cookie = self._get_cookie()
+                        config.username = username
+                        config.password = password
+                        config.cookie = self._get_cookie()
                     else:
                         raise AuthenticationError(
                             message="Bad cookie", errors="Hive REST API auth error"
@@ -160,10 +168,9 @@ class HiveRestApi:
                         message="Bad username and/or password",
                         errors="Hive REST API auth error",
                     )
-                else:
-                    config.username = username
-                    config.password = password
-                    config.cookie = self._get_cookie()
+                config.username = username
+                config.password = password
+                config.cookie = self._get_cookie()
             # Cookie and creds not presented
             else:
                 raise AuthenticationError(
@@ -173,10 +180,12 @@ class HiveRestApi:
 
             # Dump variables to config yaml
             HiveLibrary.dump_config(config=config)
-        except exceptions.ProxyError as Error:
-            print(f"Proxy error: {Error.args[0]}")
-        except exceptions.ConnectionError as Error:
-            print(f"Connection error: {Error.args[0]}")
+        except SSLCertVerificationError as error:
+            print(f"SSL error: {error.args[0]}")
+        except exceptions.ProxyError as error:
+            print(f"Proxy error: {error.args[0]}")
+        except exceptions.ConnectionError as error:
+            print(f"Connection error: {error.args[0]}")
 
     # Internal methods
     @staticmethod
@@ -190,7 +199,7 @@ class HiveRestApi:
         )
 
     def _get_cookie(self) -> str:
-        return f'SESSIONID={self._session.cookies.get("SESSIONID")}'
+        return f'BSESSIONID={self._session.cookies.get("BSESSIONID")}'
 
     # Auth
     def _password_auth(
@@ -226,6 +235,9 @@ class HiveRestApi:
             user_schema: HiveLibrary.User.Schema = HiveLibrary.User.Schema()
             user: HiveLibrary.User = user_schema.load(response.json())
             return user
+        except SSLError as error:
+            print(f"SSL error: {error.args[0]}")
+            return None
         except AssertionError as error:
             print(f"Assertion error: {error.args[0]}")
             return None
@@ -236,7 +248,7 @@ class HiveRestApi:
     def _check_cookie(self, cookie: str) -> bool:
         """
         Authorize cookie
-        :param cookie: Hive cookie string, example: 'SESSIONID=5025db17-a019-4980-9b15-0ffc71a7d0bd'
+        :param cookie: Hive cookie string, example: 'BSESSIONID=.eJwljksOAjEIQO_StZNQSil9GQOlR...'
         :return: True if success or False if error
         """
         self._session.cookies.clear()

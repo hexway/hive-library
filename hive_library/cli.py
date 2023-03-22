@@ -3,7 +3,7 @@
 Hive REST API console client
 Author: HexWay
 License: MIT
-Copyright 2022, HexWay
+Copyright 2023, HexWay
 """
 
 # Import
@@ -20,10 +20,10 @@ from prettytable import PrettyTable
 
 # Authorship information
 __author__ = "HexWay"
-__copyright__ = "Copyright 2022, HexWay"
+__copyright__ = "Copyright 2023, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b11"
+__version__ = "0.0.1b12"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"

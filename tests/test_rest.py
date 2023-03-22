@@ -3,7 +3,7 @@
 test_rest.py: Unit tests for Hive REST API
 Author: HexWay
 License: MIT
-Copyright 2022, HexWay
+Copyright 2023, HexWay
 """
 
 # Import
@@ -19,10 +19,10 @@ from ipaddress import IPv4Address
 
 # Authorship information
 __author__ = "HexWay"
-__copyright__ = "Copyright 2022, HexWay"
+__copyright__ = "Copyright 2023, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b11"
+__version__ = "0.0.1b12"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -41,7 +41,6 @@ hive_api: HiveRestApi = HiveRestApi(
 
 # Class HiveRestApiTest
 class HiveRestApiTest(TestCase):
-
     # Auth
     def test01_check_auth(self):
         hive_api._session.cookies.clear()
@@ -798,9 +797,6 @@ class HiveRestApiTest(TestCase):
                 import_type="cobaltstrike",
                 project_id=project_id,
             )
-            tasks.append(task_id)
-
-        for task_id in tasks:
             for _ in range(10):
                 if hive_api.task_is_completed(project_id=project_id, task_id=task_id):
                     break
@@ -989,7 +985,7 @@ class HiveRestApiTest(TestCase):
             data=data,
             columns=[RowTypes.HOSTNAME.value, RowTypes.IP.value],
             column_separator=",",
-            row_separator="\n"
+            row_separator="\n",
         )
 
         self.assertIsInstance(task, HiveLibrary.Task)

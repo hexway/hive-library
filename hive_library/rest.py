@@ -25,7 +25,7 @@ __author__ = "HexWay"
 __copyright__ = "Copyright 2023, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b12"
+__version__ = "0.0.1b13"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -114,7 +114,7 @@ class HiveRestApi:
         self._session: Session = Session()
         self._session.headers.update(
             {
-                "User-Agent": "Hive Client/" + "0.0.1b12",
+                "User-Agent": "Hive Client/" + "0.0.1b13",
                 "Accept": "application/json",
                 "Connection": "close",
             }
@@ -273,7 +273,7 @@ class HiveRestApi:
         """
         try:
             response = self._session.get(
-                self._server + self._endpoints.groups + "/list"
+                self._server + self._endpoints.groups + "/list/"
             )
             error_string: str = ""
             if self._debug:

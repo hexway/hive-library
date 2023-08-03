@@ -5,13 +5,8 @@ Author: HexWay
 License: MIT
 Copyright 2023, HexWay
 """
-from ssl import SSLCertVerificationError
-
-from requests.exceptions import SSLError
-
 # Import
-from hive_library import HiveLibrary
-from requests import Session, Response, exceptions
+from ssl import SSLCertVerificationError
 from typing import List, Dict, Union, Optional, Tuple
 from uuid import UUID
 from dataclasses import dataclass
@@ -20,12 +15,18 @@ from json.decoder import JSONDecodeError
 from ipaddress import IPv4Address
 from os import path
 
+from requests.cookies import create_cookie
+from requests.exceptions import SSLError
+from requests import Session, Response, exceptions
+
+from hive_library import HiveLibrary
+
 # Authorship information
 __author__ = "HexWay"
 __copyright__ = "Copyright 2023, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b13"
+__version__ = "0.0.1b14"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -114,7 +115,7 @@ class HiveRestApi:
         self._session: Session = Session()
         self._session.headers.update(
             {
-                "User-Agent": "Hive Client/" + "0.0.1b13",
+                "User-Agent": "Hive Client/" + "0.0.1b14",
                 "Accept": "application/json",
                 "Connection": "close",
             }
@@ -252,9 +253,15 @@ class HiveRestApi:
         :return: True if success or False if error
         """
         self._session.cookies.clear()
-        self._session.headers.update({"Cookie": cookie})
+        cookie_name, _, cookie_value = cookie.partition("=")
+        self._session.cookies.set_cookie(
+            create_cookie(name=cookie_name, value=cookie_value)
+        )
         response = self._session.get(self._server + self._endpoints.auth)
-        return True if response.status_code == 200 else False
+        if response.status_code == 200:
+            return True
+        self._session.cookies.clear()
+        return False
 
     # Get methods
     def get_groups(self) -> Optional[List[HiveLibrary.Group]]:
@@ -509,54 +516,44 @@ class HiveRestApi:
             print(f"JSON Decode error: {error.args[0]}")
             return None
 
-    def get_issues(self, project_id: UUID) -> Optional[List[HiveLibrary.Issue]]:
+    def get_issues(
+        self, project_id: Union[UUID, str], offset: int = 0, limit: int = -1
+    ) -> Optional[List[HiveLibrary.Issue]]:
         """
         Get Issues
-        @param project_id: Project identifier string, example: 'be282469-5615-493b-842b-733e6f0b015a'
-        @return: None if error or List of issues, example:
-        [HiveLibrary.Issue(uuid=UUID('2557c338-8b2b-483c-8884-16055b371566'), name='test',
-                           ips=['1.1.1.1', '2.2.2.2'], hostnames=['test.com'],
-                           criticality_score=1, probability_score=1,
-                           weakness_type='cwe-123',
-                           additional_fields=HiveLibrary.Issue.AdditionalFields(general_description='desc',
-                                                                                risks_description='risk',
-                                                                                technical_description='tech',
-                                                                                reproduce_description='steps',
-                                                                                recommendations='recommendations'),
-                           files=[], requests=[HiveLibrary.Issue.Request(request='123',
-                                                                         response='345',
-                                                                         id=1231392,
-                                                                         parent_id=1231350)],
-                           checkmark_count=0, creator_uuid=UUID('bc33859d-9ef9-44f6-a75e-2db032108c08'),
-                           edit_time=datetime.datetime(2022, 7, 15, 10, 36, 49, 252167),
-                           post_time=datetime.datetime(2022, 7, 13, 10, 50, 23, 822338),
-                           id=1231350)]
+        @param project_id: Project id, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        @param limit: Issues limit (-1: all issues)
+        @param offset: Issues offset
+        @return: None if error or List of issues
         """
         try:
-            response = self._session.get(
-                self._server + self._endpoints.project + f"/{project_id}/graph/issues"
+            response = self._session.post(
+                f"{self._server}{self._endpoints.project}/{project_id}/graph/issue_list",
+                params={"offset": offset, "limit": limit},
+                json={},
             )
             error_string: str = ""
             if self._debug:
                 error_string = self._make_error_string(response)
-            assert (
-                response.status_code == 200
-            ), f"Bad status code in get issues {error_string}"
-            assert isinstance(
-                response.json(), List
-            ), f"Bad response in get issues {error_string}"
+            if response.status_code != 200:
+                raise ValueError(f"Bad status code in get issues {error_string}")
+            response_json = response.json()
+            if not isinstance(response_json, dict):
+                raise ValueError(f"Bad response in get issues {error_string}")
+            if "items" not in response_json:
+                raise ValueError(f"Bad response in get issues {error_string}")
+            if not isinstance(response_json["items"], list):
+                raise ValueError(f"Bad response in get issues {error_string}")
+            if len(response_json["items"]) == 0:
+                return []
             issues_schema: HiveLibrary.Issue.Schema = HiveLibrary.Issue.Schema(
                 many=True
             )
-            issues: List[HiveLibrary.Issue] = issues_schema.load(response.json())
+            issues: List[HiveLibrary.Issue] = issues_schema.load(response_json["items"])
             return issues
 
-        except AssertionError as error:
-            print(f"Assertion error: {error.args[0]}")
-            return None
-
-        except JSONDecodeError as error:
-            print(f"JSON Decode error: {error.args[0]}")
+        except ValueError as error:
+            print(f"Error: {error.args[0]}")
             return None
 
     def get_issue(
@@ -1198,7 +1195,7 @@ class HiveRestApi:
         import_type: str = "nmap",
         project_id: Optional[UUID] = None,
         project_name: Optional[str] = None,
-        advanced_options: Optional[List[str]] = None,
+        advanced_options: Optional[Dict[str, Union[str, List[str]]]] = None,
     ) -> Optional[UUID]:
         """
         Import data from file
@@ -1207,12 +1204,11 @@ class HiveRestApi:
         :param import_type: Import type string, examples: 'nmap', 'nessus', 'metasploit', 'cobaltstrike'
         :param file_location: File location string, example: '/tmp/test.xml'
         :return: None if error or import task identifier, example: 'e08d16f3-b864-44ac-a90c-8e10f4af9893'
-        :param advanced_options: Advanced options for import, example: ['openOnly', 'skipEmpty']
+        :param advanced_options: Advanced options for import, example: {'openOnly': 'true'}
         """
         try:
-            assert not (
-                project_name is None and project_id is None
-            ), "Project ID and Name is not set"
+            if project_name is None and project_id is None:
+                raise ValueError("Project ID and Project Name is not set")
             if project_name is not None:
                 project_id = self.get_project_id_by_name(project_name=project_name)
             with open(file_location, "rb") as file:
@@ -1222,31 +1218,26 @@ class HiveRestApi:
                 "importType": (None, import_type),
                 "filename": (None, path.basename(file_location)),
             }
-            if isinstance(advanced_options, List):
-                for advanced_option in advanced_options:
-                    files[advanced_option] = (None, "true")
             response = self._session.post(
                 self._server + self._endpoints.project + f"/{project_id}/graph",
                 files=files,
+                data=advanced_options,
             )
             error_string: str = ""
             if self._debug:
                 error_string = self._make_error_string(response)
-            assert (
-                response.status_code == 200
-            ), f"Bad status code in import from file {error_string}"
-            if "taskId" in response.json():
-                if isinstance(response.json()["taskId"], str):
-                    return UUID(response.json()["taskId"])
+            if response.status_code != 200:
+                raise ValueError(f"Bad status code in import from file {error_string}")
+            response_json = response.json()
+            if "taskId" in response_json:
+                if isinstance(response_json["taskId"], str):
+                    return UUID(response_json["taskId"])
             return None
         except FileNotFoundError as error:
             print(f"File not found error: {error.args[0]}")
             return None
-        except AssertionError as error:
-            print(f"Assertion error: {error.args[0]}")
-            return None
-        except JSONDecodeError as error:
-            print(f"JSON Decode error: {error.args[0]}")
+        except ValueError as error:
+            print(f"Error: {error.args[0]}")
             return None
 
     def create_hosts(
@@ -2033,6 +2024,64 @@ class HiveRestApi:
         except JSONDecodeError as error:
             print(f"JSON Decode error: {error.args[0]}")
             return None
+
+    def delete_issue_by_uuid(
+        self, project_id: Union[str, UUID], issue_uuid: Union[str, UUID]
+    ) -> Optional[HiveLibrary.Issue]:
+        """
+        Delete issue by uuid
+        :param project_id: Project id, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param issue_uuid: Issue uuid, example: 'be282469-5615-493b-842b-733e6f0b015b'
+        :return: None if error or Issue object
+        """
+        try:
+            response = self._session.delete(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/issues/{issue_uuid}"
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            if response.status_code != 200:
+                raise ValueError(f"Bad status code in get issue by UUID {error_string}")
+            response_json = response.json()
+            if not isinstance(response_json, dict):
+                raise ValueError(f"Bad response in delete issue by UUID {error_string}")
+            issue_schema: HiveLibrary.Issue.Schema = HiveLibrary.Issue.Schema(
+                many=False
+            )
+            issue: HiveLibrary.Issue = issue_schema.load(response_json)
+            return issue
+
+        except ValueError as error:
+            print(f"Error: {error.args[0]}")
+            return None
+
+    def delete_issues(self, project_id: Union[str, UUID], issues_id: list[int]) -> bool:
+        """
+        Mass delete issues by id
+        :param project_id: Project id, example: 'be282469-5615-493b-842b-733e6f0b015a'
+        :param issues_id: List of Issues id integer, example: [123, 124]
+        :return: True if success or False if error
+        """
+        try:
+            response = self._session.post(
+                self._server
+                + self._endpoints.project
+                + f"/{project_id}/graph/issues/mass_delete/",
+                json={"idList": issues_id},
+            )
+            error_string: str = ""
+            if self._debug:
+                error_string = self._make_error_string(response)
+            if response.status_code != 204:
+                raise ValueError(f"Bad status code in mass delete issues {error_string}")
+            return True
+
+        except ValueError as error:
+            print(f"Error: {error.args[0]}")
+            return False
 
     def delete_project_by_id(self, project_id: UUID) -> Optional[HiveLibrary.Project]:
         """

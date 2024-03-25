@@ -82,6 +82,7 @@ class HiveLibrary:
 
     @dataclass
     class User:
+        is_passwordChangeRequired: bool = False
         create_date: Optional[datetime] = None
         email: Optional[str] = None
         id: Optional[UUID] = None
@@ -94,6 +95,7 @@ class HiveLibrary:
         user: Optional[Dict[str, str]] = None
 
         class Schema(MarshmallowSchema):
+            is_passwordChangeRequired = fields.Bool(default=False, data_key="passwordChangeRequired")
             permission_type = fields.String(
                 validate=validate.OneOf(PermissionTypes.list()),
                 data_key="permissionType",

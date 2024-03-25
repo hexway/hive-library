@@ -46,6 +46,8 @@ def pretty_print_hosts(hosts: List[HiveLibrary.Host]) -> None:
     table: PrettyTable = PrettyTable(keys)
     for host in hosts:
         for port in host.ports:
+            product = port.service.product if port.service.product else ""
+            version = port.service.version if port.service.version else ""
             table.add_row(
                 [
                     host.id,
@@ -56,7 +58,7 @@ def pretty_print_hosts(hosts: List[HiveLibrary.Host]) -> None:
                     port.port,
                     port.protocol,
                     port.service.name,
-                    port.service.product + " " + port.service.version,
+                    product + " " + version,
                     ", ".join(str(tag.name) for tag in port.tags),
                 ]
             )

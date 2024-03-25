@@ -3,7 +3,7 @@
 test_rest.py: Unit tests for Hive REST API
 Author: HexWay
 License: MIT
-Copyright 2022, HexWay
+Copyright 2023, HexWay
 """
 
 # Import
@@ -19,10 +19,10 @@ from ipaddress import IPv4Address
 
 # Authorship information
 __author__ = "HexWay"
-__copyright__ = "Copyright 2022, HexWay"
+__copyright__ = "Copyright 2023, HexWay"
 __credits__ = [""]
 __license__ = "MIT"
-__version__ = "0.0.1b11"
+__version__ = "0.0.1b14"
 __maintainer__ = "HexWay"
 __email__ = "contact@hexway.io"
 __status__ = "Development"
@@ -41,9 +41,8 @@ hive_api: HiveRestApi = HiveRestApi(
 
 # Class HiveRestApiTest
 class HiveRestApiTest(TestCase):
-
     # Auth
-    def test01_check_auth(self):
+    def test00_check_auth(self):
         hive_api._session.cookies.clear()
         config: HiveLibrary.Config = HiveLibrary.load_config()
         variables.username = config.username
@@ -55,6 +54,19 @@ class HiveRestApiTest(TestCase):
         self.assertIn(variables.username, [user.name, user.login, user.email])
         cookie = hive_api._get_cookie()
         self.assertTrue(hive_api._check_cookie(cookie=cookie))
+
+    def test01_get_groups(self):
+        groups = hive_api.get_groups()
+        self.assertGreaterEqual(len(groups), 1)
+        default_group_exist = False
+        for group in groups:
+            if (
+                group.name == "default"
+                and group.description == "default group"
+                and group.full_slug == "/default"
+            ):
+                default_group_exist = True
+        self.assertTrue(default_group_exist)
 
     # Work with projects
     def test02_create_project(self):
@@ -798,9 +810,6 @@ class HiveRestApiTest(TestCase):
                 import_type="cobaltstrike",
                 project_id=project_id,
             )
-            tasks.append(task_id)
-
-        for task_id in tasks:
             for _ in range(10):
                 if hive_api.task_is_completed(project_id=project_id, task_id=task_id):
                     break
@@ -989,7 +998,7 @@ class HiveRestApiTest(TestCase):
             data=data,
             columns=[RowTypes.HOSTNAME.value, RowTypes.IP.value],
             column_separator=",",
-            row_separator="\n"
+            row_separator="\n",
         )
 
         self.assertIsInstance(task, HiveLibrary.Task)

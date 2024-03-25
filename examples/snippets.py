@@ -92,11 +92,11 @@ newtag="400 Plain bla bla bla"
 # Connect to Hive and store provided creds to config at ~/.hive/config.yaml
 hive_api: HiveRestApi = HiveRestApi(username=username, password=password, server=server)
 
-cookie = hive_api._session.cookies._cookies[urlparse(server).hostname]['/']['SESSIONID'].value
+cookie = hive_api._session.cookies._cookies[urlparse(server).hostname]['/']['BSESSIONID'].value
 
 def delete_node(node_id):
     url = server+"/api/project/"+prj_id+"/graph/nodes/"+str(node_id)
-    x = requests.delete(url, cookies={"SESSIONID": cookie})
+    x = requests.delete(url, cookies={"BSESSIONID": cookie})
     print (x.text)
 
 def delete_pics_by_record():
